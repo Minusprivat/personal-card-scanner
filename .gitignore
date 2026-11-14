@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.cache/
+*.log
+# Kartenbilder gehören nicht ins Repository, nur die Fingerabdrücke
+*.webp
+
+# Echte Exportdateien der Sammlung bleiben lokal (öffentliches Repository)
+testdata/piltoverarchive/*
+!testdata/piltoverarchive/.gitkeep
