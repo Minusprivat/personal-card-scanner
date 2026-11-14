@@ -8,3 +8,7 @@ dist/
 # Echte Exportdateien der Sammlung bleiben lokal (öffentliches Repository)
 testdata/piltoverarchive/*
 !testdata/piltoverarchive/.gitkeep
+
+# Tagesdaten entstehen beim Deploy aus dem Datenskript
+public/data/
+dev-dist/

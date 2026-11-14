@@ -14,9 +14,6 @@ const BASE = 'https://openrift.app';
 export const OPENRIFT_CATALOG_URL = `${BASE}/api/v1/catalog?langs=EN`;
 export const OPENRIFT_LINKS_URL = `${BASE}/api/v1/prices/links`;
 
-export const openRiftImageUrl = (imageId: string, size: '120w' | '240w' | '400w' | 'full') =>
-  `${BASE}/media/cards/${imageId}-${size}.webp`;
-
 type Obj = Record<string, unknown>;
 
 function obj(v: unknown, what: string): Obj {
@@ -106,7 +103,14 @@ export function parseOpenRiftCatalog(raw: unknown, fetchedAt: string): Catalog {
     };
   });
 
-  return { source: 'OpenRift', fetchedAt, sets, cards, skus };
+  return {
+    source: 'OpenRift',
+    fetchedAt,
+    images: { template: `${BASE}/media/cards/{id}-{size}.webp`, thumb: '240w', detail: '400w', full: 'full' },
+    sets,
+    cards,
+    skus,
+  };
 }
 
 /** Wandelt /api/v1/prices/links in Sku-Id → Cardmarket-Produkt. Einträge ohne Produkt entfallen. */

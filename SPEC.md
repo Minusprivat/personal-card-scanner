@@ -15,7 +15,7 @@ Eine private Web-App für ein Android-Handy erkennt Riftbound-Karten per Kamera,
 
 | Thema | Entscheidung |
 | --- | --- |
-| Gerät | Android, Chrome, als installierbare Web-App (PWA) |
+| Gerät | Android, Chrome, als installierbare Web-App (PWA). Dieselbe App läuft im Browser am PC; dort lässt sich beim Scannen eine angeschlossene Kamera wählen, auch das Handy als Webcam. Es gibt keine getrennte PC-Version. |
 | Preis | Cardmarket Low je Druck; englische Variante bevorzugt, siehe Abschnitt Preise |
 | Projektname | Personal Card Scanner via Claude |
 | Bestand | Je Druck und Finish getrennt gezählt, Anzeige „Normal: X · Foil: Y“; bei Metal-Fassungen zusätzlich „Metal: X · Metal Deluxe: Y“ |
@@ -23,8 +23,8 @@ Eine private Web-App für ein Android-Handy erkennt Riftbound-Karten per Kamera,
 | Piltover Archive | Import und Export im Format von Piltover Archive, zum Übernehmen der bestehenden Sammlung und als Sicherung dort |
 | Varianten | Alt-Art, Overnumbered, Special Collection und Promos sind eigene Drucke mit eigenem Bestand und eigenem Preis |
 | Nutzung | Zunächst privat, keine Weitergabe |
-| Speicherung | Lokal auf einem Handy, Sicherung als Datei |
-| Hosting | GitHub-Konto ist vorhanden |
+| Speicherung | Lokal je Gerät, Sicherung als Datei. Handy und PC führen getrennte Bestände; die Sicherungsdatei überträgt die Sammlung von einem Gerät aufs andere. |
+| Hosting | GitHub Pages, Repository https://github.com/Minusprivat/personal-card-scanner (öffentlich), App unter https://minusprivat.github.io/personal-card-scanner/ |
 | Testmaterial | Fotos echter Karten liefert der Nutzer |
 | Gerät des Nutzers | Motorola Edge 60 Fusion |
 | Kontakt gegenüber OpenRift | Projektname und Repository-Adresse im User-Agent, keine E-Mail-Adresse |
@@ -57,7 +57,10 @@ Die erste Version deckt drei Dinge ab: scannen, in einer Sitzung sammeln und aus
 - Die Detailseite zeigt alle Drucke einer Karte nebeneinander, jeweils mit Bestand und Preis.
 - Gesamtwert der Sammlung als Summe aus Low-Preis mal Menge.
 - Export und Import als JSON (Sicherung) und als CSV.
-- Export und Import im Format von Piltover Archive. Das Format wird anhand einer echten Exportdatei des Nutzers nachgebaut (siehe Offene Punkte).
+- Export und Import im Format von Piltover Archive (CSV), nachgebaut anhand einer Exportdatei des Nutzers vom 14.11.2026.
+  - Import: Zeilen derselben Fassung werden summiert. Was sich nicht zuordnen lässt, steht in einer Liste, bleibt gespeichert und geht beim Export unverändert zurück.
+  - Export: Fassungen aus einem früheren Import behalten ihre Piltover-Felder. Für alle anderen sind Nummer und Bezeichnung nach den Mustern der Datei geschätzt, weil Piltover Archive seinen Katalog nicht zum automatischen Abruf freigibt.
+  - Grenzen: Zustand, Grading und Notizen führt die App nicht (Export schreibt „Near Mint“). Metal-Fassungen kennt das Format nicht; sie fehlen im Export.
 
 ### Später, nicht in der ersten Version
 
@@ -167,6 +170,7 @@ Die Sammlung kommt vor dem Scanner: So ist die App schon nutzbar, während die E
    - Abnahme: Die App lässt sich auf dem Android-Handy installieren und startet ohne Netz.
    - Abnahme: Alle Finishes lassen sich je Druck getrennt zählen; Export und anschließender Import stellen den Bestand vollständig wieder her.
    - Abnahme: Eine Exportdatei aus Piltover Archive lässt sich einlesen; der Export der App lässt sich dort wieder importieren.
+   - Stand 14.11.2026: gebaut und automatisch getestet. Offen sind die Prüfung auf dem Handy und der Import-Test bei Piltover Archive durch den Nutzer.
 3. **M2 Preise.** Tägliche GitHub Action, Preisanzeige, Sammlungswert, Cardmarket-Knopf.
    - Abnahme: Die Action läuft drei Tage in Folge ohne Eingriff, die App zeigt das jeweils neue Stand-Datum.
    - Abnahme: Zehn Stichproben stimmen mit dem Low-Wert auf der Cardmarket-Seite des Vortags überein.
@@ -197,8 +201,9 @@ Die Antworten stehen in `docs/m0-bericht.md`.
 
 - [ ] Mindestens 30 Testfotos nach dem Schema im Abschnitt Kartenerkennung, darunter einige Metal-Karten. Nötig ab M3.
 - [x] Handymodell: Motorola Edge 60 Fusion.
-- [ ] Öffentliches GitHub-Repository. Nötig ab M1.
-- [ ] Eine Exportdatei der eigenen Sammlung aus Piltover Archive, abgelegt unter `testdata/piltoverarchive/`. Nötig für M1.
+- [x] Öffentliches GitHub-Repository: https://github.com/Minusprivat/personal-card-scanner.
+- [x] Eine Exportdatei der eigenen Sammlung aus Piltover Archive, abgelegt unter `testdata/piltoverarchive/` (bleibt lokal, nicht im Repository).
+- [ ] Probe-Import einer von der App erzeugten Piltover-Datei bei Piltover Archive.
 
 ### Riot-Richtlinie
 

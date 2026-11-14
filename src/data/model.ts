@@ -82,9 +82,19 @@ export interface Print {
   skus: Sku[];
 }
 
+/** Wo die Kartenbilder liegen. `{id}` und `{size}` werden ersetzt. */
+export interface ImageSource {
+  template: string;
+  /** Größenkürzel der Quelle für Raster, Detailansicht und Vollbild. */
+  thumb: string;
+  detail: string;
+  full: string;
+}
+
 export interface Catalog {
   source: string;
   fetchedAt: string;
+  images: ImageSource;
   sets: CardSet[];
   cards: Card[];
   skus: Sku[];

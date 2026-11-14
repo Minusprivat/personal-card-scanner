@@ -37,10 +37,29 @@ async function report(offline: boolean) {
   }
 }
 
+/** Schreibt die Tagesdaten, die die App beim Start lädt. */
+async function build(offline: boolean) {
+  const source: CatalogSource = new OpenRiftSource({ cacheDir: CACHE_DIR, offline });
+  const catalog = await source.loadCatalog();
+  // Sets ohne englische Karten braucht die App nicht.
+  const used = new Set(catalog.skus.map((s) => s.setId));
+  const data = { ...catalog, sets: catalog.sets.filter((s) => used.has(s.id)) };
+
+  const dir = path.join(ROOT, 'public', 'data');
+  await mkdir(dir, { recursive: true });
+  const file = path.join(dir, 'catalog.json');
+  const json = JSON.stringify(data);
+  await writeFile(file, json);
+  console.log(`public/data/catalog.json: ${data.skus.length} Einträge, ${(json.length / 1024).toFixed(0)} KB.`);
+}
+
 const [command, ...flags] = process.argv.slice(2);
+const offline = flags.includes('--offline');
 if (command === 'report') {
-  await report(flags.includes('--offline'));
+  await report(offline);
+} else if (command === 'build') {
+  await build(offline);
 } else {
-  console.error('Aufruf: tsx scripts/build-data/index.ts report [--offline]');
+  console.error('Aufruf: tsx scripts/build-data/index.ts report|build [--offline]');
   process.exitCode = 1;
 }
