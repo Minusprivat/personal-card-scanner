@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { CollectionDb } from '../src/app/db';
 import { buildIndex } from '../src/data/catalog-index';
 import type { Catalog } from '../src/data/model';
+import { COPY_LIMIT, copyCount, copyTotal } from '../src/data/prints';
 import { defaultSku, interpretMatches } from '../src/scan/candidates';
 import { DEFAULT_TRACKER, ScanTracker, type Observation } from '../src/scan/tracker';
 import { sku } from './fixtures';
@@ -214,5 +215,35 @@ describe('Scan-Sitzung', () => {
     const other = await db.addToSession('t-foil', 12);
     await db.updateSession(other, { qty: 0 });
     expect(await db.session.count()).toBe(0);
+  });
+});
+
+describe('Warnung ab vier Karten derselben Fassung', () => {
+  const normalPrint = index.printBySkuId.get('d-normal')!;
+  const promoPrint = index.printBySkuId.get('d-promo')!;
+  const altPrint = index.printBySkuId.get('d-alt')!;
+
+  it('zählt Normal und Foil desselben Drucks zusammen', () => {
+    const count = copyCount(normalPrint, new Map([['d-normal', 3], ['d-foil', 1]]), new Map());
+    expect(count).toEqual({ collection: 4, session: 0 });
+    expect(copyTotal(count) >= COPY_LIMIT).toBe(true);
+  });
+
+  it('zählt Promo- und Alt-Art-Fassungen jeweils für sich', () => {
+    const stock = new Map([['d-normal', 4], ['d-promo', 1], ['d-alt', 2]]);
+    expect(copyTotal(copyCount(normalPrint, stock, new Map()))).toBe(4);
+    expect(copyTotal(copyCount(promoPrint, stock, new Map()))).toBe(1);
+    expect(copyTotal(copyCount(altPrint, stock, new Map()))).toBe(2);
+  });
+
+  it('rechnet die laufende Sitzung mit ein', () => {
+    const count = copyCount(normalPrint, new Map([['d-normal', 2]]), new Map([['d-foil', 2], ['d-promo', 5]]));
+    expect(count).toEqual({ collection: 2, session: 2 });
+    expect(copyTotal(count) >= COPY_LIMIT).toBe(true);
+  });
+
+  it('warnt nicht unter vier Karten', () => {
+    const count = copyCount(normalPrint, new Map([['d-normal', 2]]), new Map([['d-normal', 1]]));
+    expect(copyTotal(count) >= COPY_LIMIT).toBe(false);
   });
 });

@@ -14,3 +14,7 @@ public/data/
 # Dateien der Texterkennung kopiert scripts/copy-ocr.mjs aus node_modules
 public/ocr/
 dev-dist/
+
+# Testfotos des Nutzers bleiben lokal: groß, und Handyfotos tragen oft Ortsangaben
+testdata/photos/*
+!testdata/photos/.gitkeep

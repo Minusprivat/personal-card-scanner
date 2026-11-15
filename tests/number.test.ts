@@ -1,9 +1,25 @@
 import { describe, expect, it } from 'vitest';
 import { buildIndex } from '../src/data/catalog-index';
 import type { Catalog } from '../src/data/model';
-import { applyNumber, interpretMatches, isLandscape, numberCanHelp } from '../src/scan/candidates';
+import {
+  applyNumber,
+  decideByNumber,
+  interpretMatches,
+  isLandscape,
+  numberCanHelp,
+  suggestByNumber,
+} from '../src/scan/candidates';
 import type { Corners } from '../src/scan/detect';
-import { normalizeCode, numberStrip, pickByNumber, prepareStrip, projector, substringDistance } from '../src/scan/number';
+import {
+  normalizeCode,
+  numberStrip,
+  numberStrips,
+  pickByNumber,
+  prepareStrip,
+  projector,
+  STRIP_SHIFTS,
+  substringDistance,
+} from '../src/scan/number';
 import { sku } from './fixtures';
 
 const near = (a: { x: number; y: number }, x: number, y: number) => {
@@ -215,5 +231,69 @@ describe('Nummer im Scanner', () => {
   it('erkennt Battlefields als Querformat', () => {
     expect(isLandscape(index.printBySkuId.get('bf')!, index)).toBe(true);
     expect(isLandscape(index.printBySkuId.get('d')!, index)).toBe(false);
+  });
+});
+
+describe('Nummernzeile bei ungenauem Umriss', () => {
+  const upright = [
+    { x: 100, y: 50 },
+    { x: 730, y: 50 },
+    { x: 730, y: 930 },
+    { x: 100, y: 930 },
+  ] as [{ x: number; y: number }, { x: number; y: number }, { x: number; y: number }, { x: number; y: number }];
+
+  it('sucht die Zeile an mehreren Stellen, die vermutete zuerst', () => {
+    const strips = numberStrips(upright, false, false);
+    expect(strips).toHaveLength(STRIP_SHIFTS.length);
+    expect(strips[0]).toEqual(numberStrip(upright, false, false));
+    // Positive Verschiebung: weiter zum unteren Kartenrand.
+    expect(strips[1]!.quad[0].y).toBeGreaterThan(strips[0]!.quad[0].y);
+    expect(strips[2]!.quad[0].y).toBeLessThan(strips[0]!.quad[0].y);
+  });
+
+  it('verschiebt bei kopfstehender Karte in die Gegenrichtung', () => {
+    const strips = numberStrips(upright, true, false);
+    expect(strips[1]!.quad[0].y).toBeLessThan(strips[0]!.quad[0].y);
+  });
+});
+
+describe('Nummer im ganzen Katalog', () => {
+  const hit = interpretMatches([{ imageId: 'img-g', distance: 36 }], index)!;
+
+  it('schlägt die Karte zur gelesenen Nummer vor, auch wenn der Bildabgleich sie nicht kennt', () => {
+    const suggested = suggestByNumber(hit, '3 SFD 225/221 P', index)!;
+    expect(suggested.cardId).toBe('c1');
+    expect(firstIds(suggested)?.[0]).toBe('d-reprint');
+    // Was der Bildabgleich meinte, bleibt als Ausweichwahl.
+    expect(suggested.others.map((p) => p.skus[0]!.id)).toEqual(['g']);
+  });
+
+  it('schlägt nichts vor, wenn die Nummer nicht vollständig im Text steht', () => {
+    expect(suggestByNumber(hit, 'SFD 225/22', index)).toBeNull();
+    expect(suggestByNumber(hit, 'Oa', index)).toBeNull();
+  });
+
+  it('zählt einen Vorschlag aus dem ganzen Katalog nie von selbst', async () => {
+    const outcome = await decideByNumber(hit, false, index, numberStrips([{ x: 0, y: 0 }, { x: 63, y: 0 }, { x: 63, y: 88 }, { x: 0, y: 88 }], false, false), async () => 'SFD 225/221 P');
+    expect(outcome?.confirmed).toBe(false);
+    expect(outcome?.hit.cardId).toBe('c1');
+  });
+
+  it('bestätigt, sobald eine der Stellen die Nummer eines Kandidaten fehlerfrei liefert', async () => {
+    const reads = ['', 'Sa Sa', 'OGN 031/298'];
+    const outcome = await decideByNumber(hit, false, index, numberStrips([{ x: 0, y: 0 }, { x: 63, y: 0 }, { x: 63, y: 88 }, { x: 0, y: 88 }], false, false), async () => reads.shift() ?? '');
+    expect(outcome).toMatchObject({ confirmed: true, text: 'OGN 031/298' });
+    expect(outcome!.hit.cardId).toBe('c2');
+  });
+
+  it('liest gar nicht erst, wenn der Bildabgleich sicher ist und nur ein Druck in Frage kommt', async () => {
+    let calls = 0;
+    const single = interpretMatches([{ imageId: 'img-bf', distance: 8 }], index)!;
+    const outcome = await decideByNumber(single, true, index, numberStrips([{ x: 0, y: 0 }, { x: 63, y: 0 }, { x: 63, y: 88 }, { x: 0, y: 88 }], false, true), async () => {
+      calls++;
+      return 'OGN 296/298';
+    });
+    expect(outcome).toBeNull();
+    expect(calls).toBe(0);
   });
 });

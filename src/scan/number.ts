@@ -79,12 +79,28 @@ export function projector(corners: Corners): (u: number, v: number) => Point {
  * @param flipped   true, wenn die Karte im Bild kopfsteht (meldet der Abgleich)
  * @param landscape true für Karten im Querformat (Battlefields)
  */
-export function numberStrip(corners: Corners, flipped: boolean, landscape: boolean): NumberStrip {
+export function numberStrip(corners: Corners, flipped: boolean, landscape: boolean, shift = 0): NumberStrip {
   const project = projector(corners);
-  const points = (landscape ? LANDSCAPE : PORTRAIT).map(({ u, v }) =>
-    flipped ? project(1 - u, 1 - v) : project(u, v),
-  ) as [Point, Point, Point, Point];
+  // Verschoben wird quer zur Zeile: bei Hochkant-Karten nach unten, bei Battlefields zur langen Kante hin.
+  const points = (landscape ? LANDSCAPE : PORTRAIT).map(({ u, v }) => {
+    const su = landscape ? u - shift : u;
+    const sv = landscape ? v : v + shift;
+    return flipped ? project(1 - su, 1 - sv) : project(su, sv);
+  }) as [Point, Point, Point, Point];
   return { quad: points, width: Math.round(STRIP_H * (landscape ? LANDSCAPE_RATIO : PORTRAIT_RATIO)) };
+}
+
+/**
+ * Der gefundene Umriss sitzt auf echten Fotos selten genau: Auf dunklem Untergrund endet er
+ * oft am hellen Karteninneren (die Zeile liegt dann weiter außen), bei Karten in Hüllen an
+ * der Hülle (die Zeile liegt weiter innen). Die Zeile wird deshalb an mehreren Stellen
+ * gesucht; Verschiebung als Anteil der Kartenlänge, positive Werte zum Kartenrand hin.
+ */
+export const STRIP_SHIFTS = [0, 0.03, -0.03, 0.06] as const;
+
+/** Mögliche Lagen der Nummernzeile, wahrscheinlichste zuerst. */
+export function numberStrips(corners: Corners, flipped: boolean, landscape: boolean): NumberStrip[] {
+  return STRIP_SHIFTS.map((shift) => numberStrip(corners, flipped, landscape, shift));
 }
 
 /**

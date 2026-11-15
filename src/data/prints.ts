@@ -79,3 +79,29 @@ function splitUntilUnique(key: string, members: Sku[]): Array<[string, Sku[]]> {
   }
   return result;
 }
+
+/**
+ * Ab so vielen Karten derselben Fassung warnt der Scanner. Gezählt wird je Druck:
+ * Normal und Foil zusammen, Promo- und Alt-Art-Fassungen jeweils für sich.
+ */
+export const COPY_LIMIT = 4;
+
+export interface CopyCount {
+  /** In der Sammlung, über alle Finishes des Drucks. */
+  collection: number;
+  /** In der laufenden Scan-Sitzung, noch nicht übernommen. */
+  session: number;
+}
+
+/** Wie viele Karten eines Drucks vorhanden sind. Beide Maps: Sku-Id → Menge. */
+export function copyCount(print: Print, stock: Map<string, number>, session: Map<string, number>): CopyCount {
+  let collection = 0;
+  let inSession = 0;
+  for (const sku of print.skus) {
+    collection += stock.get(sku.id) ?? 0;
+    inSession += session.get(sku.id) ?? 0;
+  }
+  return { collection, session: inSession };
+}
+
+export const copyTotal = (c: CopyCount): number => c.collection + c.session;

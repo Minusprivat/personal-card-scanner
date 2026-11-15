@@ -31,7 +31,9 @@ const MAX_AREA_SHARE = 0.97;
 /** Arbeitsgröße für die Umrisssuche; größer bringt kaum Genauigkeit, kostet aber Zeit. */
 const WORK_SIZE = 640;
 /** So viele Kandidaten gibt die Suche höchstens zurück. */
-const MAX_CANDIDATES = 4;
+const MAX_CANDIDATES = 10;
+/** So oft werden die Kanten verdickt, um Lücken im Umriss zu schließen (je 1 Pixel pro Seite). */
+const EDGE_DILATION = 2;
 
 export interface Point {
   x: number;
@@ -45,7 +47,7 @@ export interface Candidate {
   corners: Corners;
   /** Anteil der Bildfläche, den das Viereck einnimmt. */
   areaShare: number;
-  method: 'kanten' | 'hintergrund';
+  method: 'kanten' | 'hintergrund' | 'struktur';
 }
 
 export interface Detection extends Candidate {
@@ -117,46 +119,83 @@ function polygonOf(mat: OpenCv): Point[] {
   return Array.from({ length: mat.rows }, (_, i) => ({ x: d[i * 2]!, y: d[i * 2 + 1]! }));
 }
 
-/** Kartenförmiges Viereck zu einem Umriss, oder null. */
-function quadFromContour(cv: OpenCv, contour: OpenCv, width: number, height: number): { corners: Corners; area: number } | null {
+/**
+ * Kartenförmige Vierecke zu einem Umriss: das Viereck aus den vier längsten Kanten
+ * (folgt auch schräger Sicht) und das kleinste umschließende Rechteck (verträgt
+ * ausgefranste oder unvollständige Umrisse). Beide können gelten; welcher stimmt,
+ * zeigt später der Abgleich.
+ */
+function quadsFromContour(cv: OpenCv, contour: OpenCv, width: number, height: number): Array<{ corners: Corners; area: number }> {
   const hull = new cv.Mat();
   const approx = new cv.Mat();
+  const result: Array<{ corners: Corners; area: number }> = [];
+  // Die Ecken dürfen nur knapp außerhalb des Bilds liegen, und das Viereck muss
+  // den Umriss gut ausfüllen – sonst ist es kein Rechteck, sondern etwas anderes.
+  const margin = 0.03 * Math.max(width, height);
+  const accept = (points: Point[] | null, hullArea: number, minFill: number) => {
+    const corners = points && orderCorners(points);
+    if (!corners) return;
+    if (corners.some((p) => p.x < -margin || p.y < -margin || p.x > width + margin || p.y > height + margin)) return;
+    const area = polygonArea(corners);
+    if (hullArea / area < minFill || hullArea / area > 1.08) return;
+    result.push({ corners, area });
+  };
   try {
     cv.convexHull(contour, hull, false, true);
     const hullArea = cv.contourArea(hull);
     cv.approxPolyDP(hull, approx, 0.012 * cv.arcLength(hull, true), true);
-    const quad = quadFromPolygon(polygonOf(approx));
-    const corners = quad && orderCorners(quad);
-    if (!corners) return null;
-
-    // Die Ecken dürfen nur knapp außerhalb des Bilds liegen, und das Viereck muss
-    // den Umriss gut ausfüllen – sonst ist es kein Rechteck, sondern etwas anderes.
-    const margin = 0.03 * Math.max(width, height);
-    if (corners.some((p) => p.x < -margin || p.y < -margin || p.x > width + margin || p.y > height + margin)) return null;
-    const area = polygonArea(corners);
-    if (hullArea / area < 0.9 || hullArea / area > 1.08) return null;
-    return { corners, area };
+    accept(quadFromPolygon(polygonOf(approx)), hullArea, 0.9);
+    const rect = cv.RotatedRect.points(cv.minAreaRect(hull)) as Point[];
+    accept(rect.map((p) => ({ x: p.x, y: p.y })), hullArea, 0.86);
+    return result;
   } finally {
     hull.delete();
     approx.delete();
   }
 }
 
-function quadsFromMask(cv: OpenCv, mask: OpenCv, method: Candidate['method'], out: Array<Candidate & { area: number }>): void {
+/** Schiebt die Ecken eines Vierecks um `px` Bildpunkte von der Mitte weg. */
+function growQuad(corners: Corners, px: number): Corners {
+  if (px === 0) return corners;
+  const cx = corners.reduce((s, p) => s + p.x, 0) / 4;
+  const cy = corners.reduce((s, p) => s + p.y, 0) / 4;
+  return corners.map((p) => {
+    const d = Math.hypot(p.x - cx, p.y - cy) || 1;
+    // Eine Ecke liegt diagonal: je Achse `px`, entlang der Diagonale also das √2-Fache.
+    const f = (d + px * Math.SQRT2) / d;
+    return { x: cx + (p.x - cx) * f, y: cy + (p.y - cy) * f };
+  }) as Corners;
+}
+
+/**
+ * Sammelt kartenförmige Vierecke aus einem Schwarzweißbild.
+ *
+ * @param inner Auch Innenränder weißer Flächen prüfen. Im Kantenbild ist der Kartenumriss eine
+ *   geschlossene Linie; an ihrer Außenseite hängen Störungen des Untergrunds (Holzmaserung,
+ *   Körnung der Matte), ihre Innenseite ist sauber. `grow` gleicht die Verdickung der Linie aus.
+ */
+function quadsFromMask(
+  cv: OpenCv,
+  mask: OpenCv,
+  method: Candidate['method'],
+  out: Array<Candidate & { area: number }>,
+  inner = false,
+  grow = 0,
+): void {
   const contours = new cv.MatVector();
   const hierarchy = new cv.Mat();
   try {
-    cv.findContours(mask, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+    cv.findContours(mask, contours, hierarchy, inner ? cv.RETR_LIST : cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
     const imageArea = mask.cols * mask.rows;
     for (let i = 0; i < contours.size(); i++) {
       const contour = contours.get(i);
       try {
         if (cv.contourArea(contour) < imageArea * MIN_AREA_SHARE * 0.6) continue;
-        const quad = quadFromContour(cv, contour, mask.cols, mask.rows);
-        if (!quad) continue;
-        const areaShare = quad.area / imageArea;
-        if (areaShare < MIN_AREA_SHARE || areaShare > MAX_AREA_SHARE) continue;
-        out.push({ corners: quad.corners, area: quad.area, areaShare, method });
+        for (const quad of quadsFromContour(cv, contour, mask.cols, mask.rows)) {
+          const areaShare = quad.area / imageArea;
+          if (areaShare < MIN_AREA_SHARE || areaShare > MAX_AREA_SHARE) continue;
+          out.push({ corners: growQuad(quad.corners, grow), area: quad.area, areaShare, method });
+        }
       } finally {
         contour.delete();
       }
@@ -177,11 +216,39 @@ function edgeMask(cv: OpenCv, small: OpenCv): OpenCv {
     cv.GaussianBlur(gray, gray, new cv.Size(5, 5), 0);
     cv.Canny(gray, edges, 25, 75);
     // Kleine Lücken im Umriss schließen, sonst zerfällt er in Stücke.
-    cv.dilate(edges, edges, kernel, new cv.Point(-1, -1), 2);
+    cv.dilate(edges, edges, kernel, new cv.Point(-1, -1), EDGE_DILATION);
     return edges;
   } finally {
     gray.delete();
     kernel.delete();
+  }
+}
+
+/**
+ * Verfahren 3: Fläche mit viel Struktur. Eine Karte ist voller Kanten (Motiv, Rahmen,
+ * Text), ein Tisch oder eine Spielmatte kaum. Die Kanten werden zu einer Fläche
+ * zusammengezogen; das überbrückt auch den schwarzen Kartenrand bis zur äußeren Kante,
+ * der sich auf dunklem Untergrund farblich nicht abhebt. Dünne Reste (Maserung,
+ * Körnung) fallen danach wieder weg.
+ */
+function structureMask(cv: OpenCv, small: OpenCv): OpenCv {
+  const gray = new cv.Mat();
+  const mask = new cv.Mat();
+  const size = Math.max(small.cols, small.rows);
+  const odd = (n: number) => Math.max(3, Math.round(n) | 1);
+  const close = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(odd(size * 0.035), odd(size * 0.035)));
+  const open = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(odd(size * 0.05), odd(size * 0.05)));
+  try {
+    cv.cvtColor(small, gray, cv.COLOR_RGBA2GRAY);
+    cv.GaussianBlur(gray, gray, new cv.Size(5, 5), 0);
+    cv.Canny(gray, mask, 25, 75);
+    cv.morphologyEx(mask, mask, cv.MORPH_CLOSE, close);
+    cv.morphologyEx(mask, mask, cv.MORPH_OPEN, open);
+    return mask;
+  } finally {
+    gray.delete();
+    close.delete();
+    open.delete();
   }
 }
 
@@ -250,16 +317,17 @@ export function findCandidates(cv: OpenCv, src: OpenCv): Candidate[] {
   const found: Array<Candidate & { area: number }> = [];
   try {
     cv.resize(src, small, new cv.Size(Math.round(src.cols * scale), Math.round(src.rows * scale)), 0, 0, cv.INTER_AREA);
-    for (const [method, make] of [
-      ['hintergrund', backgroundMask],
-      ['kanten', edgeMask],
-    ] as const) {
-      const mask = make(cv, small);
-      try {
-        quadsFromMask(cv, mask, method, found);
-      } finally {
-        mask.delete();
-      }
+    const background = backgroundMask(cv, small);
+    const edges = edgeMask(cv, small);
+    const structure = structureMask(cv, small);
+    try {
+      quadsFromMask(cv, background, 'hintergrund', found);
+      quadsFromMask(cv, edges, 'kanten', found, true, EDGE_DILATION);
+      quadsFromMask(cv, structure, 'struktur', found);
+    } finally {
+      background.delete();
+      edges.delete();
+      structure.delete();
     }
 
     found.sort((a, b) => b.area - a.area);

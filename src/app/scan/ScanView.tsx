@@ -1,18 +1,18 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { imageUrl, printCode, printImageId, printName, type CatalogIndex } from '../../data/catalog-index';
 import { FINISH_LABELS, type Print } from '../../data/model';
 import { formatEuro, type PriceData } from '../../data/prices';
-import { variantLabel } from '../../data/prints';
+import { COPY_LIMIT, copyCount, copyTotal, variantLabel } from '../../data/prints';
 import {
-  applyNumber,
+  decideByNumber,
   defaultSku,
   interpretMatches,
   isLandscape,
-  numberCanHelp,
+  type NumberOutcome,
   type ScanHit,
 } from '../../scan/candidates';
 import type { Corners } from '../../scan/detect';
-import { numberStrip } from '../../scan/number';
+import { numberStrips, type NumberStrip } from '../../scan/number';
 import type { FrameResult } from '../../scan/protocol';
 import { DEFAULT_TRACKER, ScanTracker, type TrackerState } from '../../scan/tracker';
 import { stockLine } from '../CollectionView';
@@ -99,6 +99,13 @@ export function ScanView({
   const [diagnosis, setDiagnosis] = useState('');
   const [photoMessage, setPhotoMessage] = useState<string | null>(null);
 
+  // Die Erkennung läuft in einer Schleife; sie braucht stets den aktuellen Bestand.
+  const stockRef = useRef(stock);
+  stockRef.current = stock;
+  const sessionQty = useMemo(() => new Map(session.map((r) => [r.skuId, r.qty])), [session]);
+  const sessionQtyRef = useRef(sessionQty);
+  sessionQtyRef.current = sessionQty;
+
   useEffect(() => {
     if (recognizer.status === 'ready') warmUpOcr();
   }, [recognizer.status]);
@@ -109,47 +116,50 @@ export function ScanView({
    * für eine andere Karte gesprochen hat.
    */
   const add = useCallback(async (hit: ScanHit, print: Print, distance: number | null, seenMotif: string) => {
+    // Stand vor diesem Scan: Sammlung plus bisherige Sitzung.
+    const warning = copyTotal(copyCount(print, stockRef.current, sessionQtyRef.current)) >= COPY_LIMIT;
     const rowId = await db.addToSession(defaultSku(print).id, distance);
     tracker.current.hold(seenMotif);
     setLast({ rowId, hit });
     setCandidates(null);
-    navigator.vibrate?.(60);
+    // Ein kurzer Impuls für „gezählt“, ein deutlich längeres Muster für die Warnung.
+    navigator.vibrate?.(warning ? [80, 80, 80, 80, 300] : 60);
   }, []);
 
   /**
-   * Liest die Kartennummer aus dem Bild in voller Auflösung und stellt den passenden Druck
-   * nach vorn. Gibt null zurück, wenn die Nummer nicht hilft oder nicht lesbar war.
+   * Liest die Kartennummer aus dem Bild in voller Auflösung. Gibt null zurück, wenn die
+   * Nummer nichts beiträgt oder nicht lesbar war; sonst den Treffer mit dem passenden Druck
+   * vorn und die Angabe, ob die Nummer ihn bestätigt oder nur vorschlägt.
    */
   const readNumber = useCallback(
-    async (shot: Capture, result: FrameResult, hit: ScanHit, anyCard: boolean): Promise<{ hit: ScanHit; text: string } | null> => {
-      if (!result.corners || !numberCanHelp(hit, anyCard)) return null;
+    async (shot: Capture, result: FrameResult, hit: ScanHit, sure: boolean): Promise<NumberOutcome | null> => {
+      if (!result.corners) return null;
       const corners = result.corners.map((p) => ({ x: p.x * shot.scale, y: p.y * shot.scale })) as Corners;
-      const strip = numberStrip(corners, result.flipped, isLandscape(hit.prints[0]!, index));
-      const lineHeight = Math.hypot(strip.quad[0].x - strip.quad[3].x, strip.quad[0].y - strip.quad[3].y);
-      if (lineHeight < MIN_NUMBER_HEIGHT) return null;
-
-      // Nur den Bereich um die Zeile aus dem großen Bild lesen, nicht das ganze Bild.
-      const xs = strip.quad.map((p) => p.x);
-      const ys = strip.quad.map((p) => p.y);
-      const left = Math.max(0, Math.floor(Math.min(...xs)) - 4);
-      const top = Math.max(0, Math.floor(Math.min(...ys)) - 4);
-      const right = Math.min(shot.full.width, Math.ceil(Math.max(...xs)) + 4);
-      const bottom = Math.min(shot.full.height, Math.ceil(Math.max(...ys)) + 4);
-      if (right - left < 8 || bottom - top < 8) return null;
       const ctx = shot.full.getContext('2d', { willReadFrequently: true });
       if (!ctx) return null;
-      const crop = ctx.getImageData(left, top, right - left, bottom - top);
 
-      const image = await recognizer.strip(
-        crop,
-        strip.quad.flatMap((p) => [p.x - left, p.y - top]),
-        strip.width,
-      );
-      if (!image) return null;
-      const text = await readLine(image);
-      if (!text) return null;
-      const byNumber = applyNumber(hit, text, index, anyCard);
-      return byNumber ? { hit: byNumber, text } : null;
+      const read = async (strip: NumberStrip): Promise<string> => {
+        const lineHeight = Math.hypot(strip.quad[0].x - strip.quad[3].x, strip.quad[0].y - strip.quad[3].y);
+        if (lineHeight < MIN_NUMBER_HEIGHT) return '';
+        // Nur den Bereich um die Zeile aus dem großen Bild lesen, nicht das ganze Bild.
+        const xs = strip.quad.map((p) => p.x);
+        const ys = strip.quad.map((p) => p.y);
+        const left = Math.max(0, Math.floor(Math.min(...xs)) - 4);
+        const top = Math.max(0, Math.floor(Math.min(...ys)) - 4);
+        const right = Math.min(shot.full.width, Math.ceil(Math.max(...xs)) + 4);
+        const bottom = Math.min(shot.full.height, Math.ceil(Math.max(...ys)) + 4);
+        if (right - left < 8 || bottom - top < 8) return '';
+        const crop = ctx.getImageData(left, top, right - left, bottom - top);
+        const image = await recognizer.strip(
+          crop,
+          strip.quad.flatMap((p) => [p.x - left, p.y - top]),
+          strip.width,
+        );
+        return image ? readLine(image) : '';
+      };
+
+      const strips = numberStrips(corners, result.flipped, isLandscape(hit.prints[0]!, index));
+      return decideByNumber(hit, sure, index, strips, read);
     },
     [index, recognizer],
   );
@@ -189,21 +199,22 @@ export function ScanView({
           if (state.status === 'idle') setCandidates(null);
           else if (state.status === 'sure' && state.isNew && hit) {
             // Bildabgleich ist sicher: Die Nummer wählt nur noch zwischen Drucken derselben Karte.
-            const read = await readNumber(shot, result, hit, false);
+            const read = await readNumber(shot, result, hit, true);
             if (stopped) return;
             number = read?.text;
-            const chosen = read?.hit ?? hit;
+            const chosen = read?.confirmed ? read.hit : hit;
             await add(chosen, chosen.prints[0]!, hit.distance, hit.motif);
           } else if (state.status === 'unsure' && hit) {
             // Bildabgleich ist unsicher: Bestätigt die Nummer einen Kandidaten, zählt er trotzdem.
             const now = performance.now();
             if (now - lastNumberTry.current > NUMBER_RETRY_MS) {
               lastNumberTry.current = now;
-              const read = await readNumber(shot, result, hit, true);
+              const read = await readNumber(shot, result, hit, false);
               if (stopped) return;
               number = read?.text;
-              if (read) await add(read.hit, read.hit.prints[0]!, hit.distance, hit.motif);
-              else setCandidates(hit);
+              if (read?.confirmed) await add(read.hit, read.hit.prints[0]!, hit.distance, hit.motif);
+              // Sonst wählt der Nutzer; eine im Katalog gefundene Nummer steht dabei vorn.
+              else setCandidates(read?.hit ?? hit);
             }
           }
           setDiagnosis((previous) => (number || state.status !== 'sure' ? describe(hit, result, number) : previous));
@@ -250,14 +261,14 @@ export function ScanView({
         return;
       }
       const sure = hit.distance <= DEFAULT_TRACKER.sureDistance && hit.margin >= DEFAULT_TRACKER.minMargin;
-      const read = await readNumber(shot, result, hit, !sure);
+      const read = await readNumber(shot, result, hit, sure);
       setDiagnosis(describe(hit, result, read?.text));
-      const chosen = read?.hit ?? hit;
-      if (sure || read) {
+      if (sure || read?.confirmed) {
+        const chosen = read?.confirmed ? read.hit : hit;
         await add(chosen, chosen.prints[0]!, hit.distance, hit.motif);
         setPhotoMessage(null);
       } else {
-        setCandidates(hit);
+        setCandidates(read?.hit ?? hit);
         setPhotoMessage('Nicht eindeutig. Wähle die passende Karte aus.');
       }
     } catch (err) {
@@ -268,6 +279,8 @@ export function ScanView({
   const lastRow = last && session.find((r) => r.id === last.rowId);
   const lastSku = lastRow && index.skuById.get(lastRow.skuId);
   const lastPrint = lastSku && index.printBySkuId.get(lastSku.id);
+  // Laufend berechnet, damit die Warnung auch nach „Andere Fassung“ oder „Rückgängig“ stimmt.
+  const lastCopies = lastPrint ? copyCount(lastPrint, stock, sessionQty) : null;
 
   const status =
     recognizer.status === 'loading'
@@ -348,7 +361,7 @@ export function ScanView({
                 key={print.key}
                 index={index}
                 print={print}
-                onPick={() => void add(candidates, print, candidates.distance, candidates.motif)}
+                onPick={() => void add(candidates, print, null, candidates.motif)}
               />
             ))}
           </div>
@@ -363,6 +376,13 @@ export function ScanView({
             )}
           </div>
           <div className="last-text">
+            {lastCopies && copyTotal(lastCopies) > COPY_LIMIT && (
+              <p className="notice error limit" role="alert">
+                Du hattest schon {COPY_LIMIT} oder mehr Karten dieser Fassung. Mit dieser sind es{' '}
+                {copyTotal(lastCopies)} (Sammlung {lastCopies.collection}, Sitzung {lastCopies.session}). Sie wurde
+                trotzdem gezählt; „Rückgängig“ nimmt sie wieder heraus.
+              </p>
+            )}
             <h2>{printName(index, lastPrint)}</h2>
             <p className="sub">
               {index.setById.get(lastPrint.setId)?.name} · {printCode(lastPrint)} · {variantLabel(lastSku)}
@@ -421,7 +441,7 @@ export function ScanView({
         </section>
       )}
 
-      <SessionList index={index} rows={session} prices={prices} />
+      <SessionList index={index} rows={session} prices={prices} stock={stock} />
 
       {diagnosis && <p className="version">{diagnosis}</p>}
     </div>

@@ -8,10 +8,10 @@ Alle Anteile beziehen sich auf alle Szenen. „Umriss genau“ heißt: Alle vier
 
 | Untergrund | richtiges Motiv an erster Stelle | richtiges Motiv unter den ersten drei | Umriss genau |
 | --- | --- | --- | --- |
-| dunkles Holz | 95,5 % | 95,5 % | 96,0 % |
-| grauer Tisch | 95,0 % | 95,0 % | 99,0 % |
-| weißer Tisch | 95,5 % | 95,5 % | 99,0 % |
-| schwarze Spielmatte | 90,5 % | 92,0 % | 86,5 % |
-| grüne Spielmatte | 94,5 % | 94,5 % | 95,0 % |
+| dunkles Holz | 95,5 % | 95,5 % | 87,0 % |
+| grauer Tisch | 95,0 % | 95,0 % | 95,0 % |
+| weißer Tisch | 95,5 % | 95,5 % | 91,5 % |
+| schwarze Spielmatte | 95,0 % | 95,5 % | 79,0 % |
+| grüne Spielmatte | 95,5 % | 95,5 % | 88,5 % |
 
-Mittlere Dauer je Bild auf dem Entwicklungs-PC: 45 ms (ohne Laden von OpenCV). Auf dem Handy ist erst nach einem Test dort eine Aussage möglich.
+Mittlere Dauer je Bild auf dem Entwicklungs-PC: 77 ms (ohne Laden von OpenCV). Auf dem Handy ist erst nach einem Test dort eine Aussage möglich.

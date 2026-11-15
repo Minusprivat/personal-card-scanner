@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { imageUrl, printCode, printImageId, printName, type CatalogIndex } from '../../data/catalog-index';
 import { FINISH_LABELS } from '../../data/model';
 import { formatEuro, type PriceData } from '../../data/prices';
-import { variantLabel } from '../../data/prints';
+import { COPY_LIMIT, copyCount, copyTotal, variantLabel } from '../../data/prints';
 import { db, type SessionRow } from '../db';
 
 const cards = (n: number) => (n === 1 ? '1 Karte' : `${n} Karten`);
@@ -15,12 +15,15 @@ export function SessionList({
   index,
   rows,
   prices,
+  stock,
 }: {
   index: CatalogIndex;
   rows: SessionRow[];
   prices: PriceData | null;
+  stock: Map<string, number>;
 }) {
   const [message, setMessage] = useState<string | null>(null);
+  const sessionQty = new Map(rows.map((r) => [r.skuId, r.qty]));
   const checkedQty = rows.reduce((n, r) => n + (r.checked ? r.qty : 0), 0);
   const totalQty = rows.reduce((n, r) => n + r.qty, 0);
 
@@ -65,6 +68,9 @@ export function SessionList({
           const imageId = printImageId(print);
           const variant = variantLabel(sku);
           const low = prices?.entries[sku.id]?.low ?? null;
+          // Mit dieser Sitzung zusammen mehr als COPY_LIMIT Karten der Fassung?
+          const copies = copyCount(print, stock, sessionQty);
+          const tooMany = copyTotal(copies) > COPY_LIMIT;
           return (
             <li key={row.id} className={row.checked ? 'session-row' : 'session-row unchecked'}>
               <input
@@ -83,6 +89,11 @@ export function SessionList({
                   {variant !== 'Standard' && <> · {variant}</>}
                   {low !== null && <> · {formatEuro(low)}</>}
                 </span>
+                {tooMany && (
+                  <span className="over-limit">
+                    Dann {copyTotal(copies)} Stück (Sammlung {copies.collection} + Sitzung {copies.session})
+                  </span>
+                )}
                 {print.skus.length > 1 ? (
                   <select
                     aria-label="Finish"

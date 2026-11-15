@@ -7,7 +7,7 @@ Private Riftbound-Sammlungs-App als PWA für Android und PC, zusätzlich als And
 - **M0 Datenprüfung:** fertig, Ergebnis in [docs/m0-bericht.md](docs/m0-bericht.md).
 - **M1 Gerüst und Sammlung:** gebaut; wartet auf die Prüfung durch den Nutzer (Handy, Import bei Piltover Archive).
 - **M2 Preise:** gebaut; Abnahme offen (drei tägliche Läufe in Folge, zehn Stichproben aus `docs/m2-stichproben.md` durch den Nutzer).
-- **M3 Erkennung:** vorbereitet (Fingerabdrücke, Umrisssuche, Abgleich, Prüfprogramme). Die Kartennummer wird gelesen (Tesseract). Offen: Test mit echten Fotos des Nutzers, Geschwindigkeit auf dem Handy.
+- **M3 Erkennung:** vorbereitet (Fingerabdrücke, Umrisssuche, Abgleich, Prüfprogramme). Die Kartennummer wird gelesen (Tesseract). Mit 41 Fotos des Nutzers: 92,7 % richtige Karte vorn, kein falscher Selbstzähler ([docs/m3-fotos.md](docs/m3-fotos.md)); Ziel 95 % / 99 % noch nicht erreicht. Offen: Karten in Hüllen auf dunklem Untergrund, Geschwindigkeit auf dem Handy.
 - **M4 Scan-Sitzung:** gebaut (Scan-Seite, Sitzungsliste, Übernahme). Offen: Test mit echter Kamera durch den Nutzer; die Schwellen in `src/scan/tracker.ts` sind geschätzt und nach seinen Rückmeldungen einzustellen.
 
 Repository: https://github.com/Minusprivat/personal-card-scanner · Web-App: https://minusprivat.github.io/personal-card-scanner/ · APK: https://github.com/Minusprivat/personal-card-scanner/releases/download/apk/card-scanner.apk
@@ -31,6 +31,7 @@ Repository: https://github.com/Minusprivat/personal-card-scanner · Web-App: htt
 | Erkennung prüfen: verzerrte Katalogbilder | `npm run scan:selftest` |
 | Erkennung prüfen: künstliche Szenen, ganze Kette | `npm run scan:scenes` |
 | Erkennung prüfen: echte Fotos aus `testdata/photos/` (Abnahme M3) | `npm run scan:photos` |
+| Gefundene Umrisse für einzelne Fotos einzeichnen (nach `.cache/debug/umrisse.jpg`) | `npx tsx scripts/scan/debug.ts 3,7,19` |
 | Nummernlesen prüfen (braucht große Katalogbilder unter `.cache/full/`) | `npm run scan:numbers` |
 | Dateien der Texterkennung nach `public/ocr/` kopieren (läuft vor `dev` und `build` von selbst) | `npm run ocr:copy` |
 
@@ -74,6 +75,7 @@ Commits in diesem Repository nutzen die GitHub-noreply-Adresse (lokale Git-Einst
   - `stats.ts`, `report.ts`: Auswertung und M0-Bericht.
 - `tests/` – Vitest. `m0-abnahme.test.ts` prüft gegen die Daten in `.cache/`; `collection.test.ts` prüft zusätzlich die echte Piltover-Datei unter `testdata/piltoverarchive/`. Fehlen die lokalen Daten, werden diese Tests übersprungen.
 - `testdata/piltoverarchive/` – echte Sammlungsdateien des Nutzers. Von Git ausgenommen, niemals einchecken.
+- `testdata/photos/` – Testfotos des Nutzers samt `labels.json` (Foto → aufgedruckte Nummer, von Hand geprüft). Von Git ausgenommen, niemals einchecken; neue Fotos dort eintragen.
 - `docs/` – erzeugte Berichte. Nicht von Hand ändern.
 
 ## Regeln
@@ -83,6 +85,7 @@ Commits in diesem Repository nutzen die GitHub-noreply-Adresse (lokale Git-Einst
 - Keine Kartenbilder im Repository, nur daraus berechnete Fingerabdrücke. `.cache/images/` ist ein Entwicklungs-Zwischenspeicher auf dem PC und wird nach Abschluss von M3 gelöscht.
 - Der eingebaute Browser gibt keine Kamera frei. Die Scan-Seite dort über „Foto wählen“ prüfen; Testbilder nur vorübergehend unter `public/` ablegen und vor dem Commit löschen.
 - Die Nummer darf einen unsicheren Bildtreffer nur bestätigen, wenn sie fehlerfrei gelesen wurde (`allowedErrors` in `candidates.ts`); Nachbarkarten im Set unterscheiden sich oft nur in einer Ziffer.
+- Eine falsche Karte von selbst zu zählen ist der schlimmste Fehler des Scanners. Änderungen an Erkennung oder Schwellen nur behalten, wenn `npm run scan:photos` weiterhin „von selbst gezählt, falsche Karte: 0“ meldet.
 - Erkennung nicht an künstlichen Tests feinschleifen: Maßgeblich sind die echten Fotos unter `testdata/photos/`.
 - Piltover Archive nicht automatisch abrufen (Nutzungsbedingungen untersagen Scraping); das Format stammt allein aus den Dateien des Nutzers.
 - Preise kommen nur aus der Cardmarket-Preisdatei, nicht aus OpenRifts `/api/v1/prices` (enthält Platzhalter).

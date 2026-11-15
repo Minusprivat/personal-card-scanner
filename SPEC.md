@@ -54,6 +54,7 @@ Die erste Version deckt drei Dinge ab: scannen, in einer Sitzung sammeln und aus
 - Am Ende zeigt die Liste jede Zeile mit Häkchen, Menge und Normal/Foil, alles änderbar.
 - „Auswahl übernehmen“ schreibt die angehakten Zeilen in die Sammlung, der Rest wird verworfen.
 - Eine offene Sitzung übersteht das Schließen der App.
+- **Warnung ab 4 Karten:** Sind von einer Fassung schon 4 Karten vorhanden (Sammlung plus laufende Sitzung), warnt der Scanner beim nächsten Scan dieser Fassung deutlich, zählt die Karte aber trotzdem; „Rückgängig“ nimmt sie wieder heraus. Gezählt wird je Druck: Normal und Foil zusammen, Promo- und Alt-Art-Fassungen jeweils für sich. In der Sitzungsliste sind betroffene Zeilen markiert.
 
 ### Sammlung
 
@@ -116,11 +117,13 @@ Die Erkennung läuft vollständig auf dem Handy und gleicht das Kamerabild mit v
 3. **Nummer lesen:** Die Zeile mit der Kartennummer per Texterkennung auslesen. Sie entscheidet, wenn mehrere Drucke dasselbe Motiv tragen.
    - Gelesen wird nur an Entscheidungsstellen: wenn gleich aussehende Drucke verschiedene Nummern tragen oder der Bildabgleich unsicher ist. Der Text wird unscharf mit den Nummern der Kandidaten verglichen.
    - Ist der Bildabgleich sicher, wählt die Nummer nur zwischen gleich aussehenden Drucken (bis zu zwei Lesefehler). Einen unsicheren Bildtreffer bestätigt sie nur, wenn sie fehlerfrei gelesen wurde.
+   - Die Zeile wird an mehreren leicht verschobenen Stellen gesucht, weil der Umriss auf echten Fotos selten genau sitzt.
+   - Steht eine fehlerfrei gelesene Nummer im Katalog, obwohl der Bildabgleich die Karte nicht vorschlägt, rückt sie in der Auswahl nach vorn; von selbst gezählt wird auf dieser Grundlage nie.
    - Grenzen: Drucke mit gleicher Nummer (mit und ohne Promo-Stempel) und signierte Fassungen (Sternchen) trennt die Nummer nicht; dort schlägt die App die gewöhnliche Fassung vor. Die Karte muss im Kamerabild etwa 480 Bildpunkte hoch sein.
 4. **Entscheiden:** Ist ein Treffer über mehrere Bilder hinweg stabil und eindeutig, geht er in die Sitzung. Sonst erscheinen die Kandidaten zur Auswahl.
 
 - **Fingerabdrücke** entstehen im täglichen Datenskript aus den Katalogbildern. Im Repository liegen nur die Fingerabdrücke (`data/fingerprints.json`), keine Bildkopien. Für die Entwicklung der Erkennung liegen die Bilder vorübergehend auf dem Entwicklungs-PC unter `.cache/images/` (nicht im Repository); nach Abschluss von M3 werden sie gelöscht.
-- **Umrisssuche:** Zwei Verfahren (Kanten, Abweichung von der Hintergrundfarbe) schlagen Vierecke vor; es gilt das, dessen Inhalt am besten zu einem Katalogbild passt.
+- **Umrisssuche:** Drei Verfahren schlagen Vierecke vor: geschlossene Kanten, Abweichung von der Hintergrundfarbe und zusammenhängende Fläche mit viel Struktur (überbrückt den schwarzen Kartenrand auf dunklem Untergrund). Es gilt das Viereck, dessen Inhalt am besten zu einem Katalogbild passt.
 - **Varianten:** Alt-Art und Overnumbered unterscheiden sich im Motiv und werden über den Fingerabdruck getrennt. Gleiches Motiv mit anderer Nummer trennt die Texterkennung.
 - **Foil** wird nicht erkannt, sondern per Schalter gesetzt.
 - **Ausweichlösung:** Reicht der Fingerabdruck nicht, ersetzt ein kleines Bildmodell im Browser (ONNX Runtime Web oder TensorFlow.js) Schritt 2. Der Rest bleibt gleich.
@@ -128,7 +131,7 @@ Die Erkennung läuft vollständig auf dem Handy und gleicht das Kamerabild mit v
 ### Testsatz und Zielwerte
 
 - Der Nutzer liefert mindestens 30 Fotos: normale Karten, Foils, Alt-Art, Overnumbered, mit und ohne Hülle, bei gutem und schlechtem Licht.
-- Ablage unter `testdata/photos/`, der Dateiname nennt die erwartete Kartennummer, zum Beispiel `OGN-142_foil_huelle.jpg`.
+- Ablage unter `testdata/photos/`. Die erwartete Kartennummer steht in `labels.json` im selben Ordner oder am Anfang des Dateinamens, zum Beispiel `OGN-142_foil_huelle.jpg`.
 - Ein automatischer Test lässt die Erkennung über alle Fotos laufen und meldet die Trefferquote.
 - Ziel: richtiger Druck an erster Stelle bei mindestens 95 % der Fotos, unter den ersten drei bei mindestens 99 %, unter einer Sekunde pro Karte auf dem Handy des Nutzers.
 
@@ -188,7 +191,8 @@ Die Sammlung kommt vor dem Scanner: So ist die App schon nutzbar, während die E
    - Abnahme: Zehn Stichproben stimmen mit dem Low-Wert auf der Cardmarket-Seite des Vortags überein.
 4. **M3 Erkennung.** Fingerabdrücke, Erkennungskette, automatischer Test gegen die Fotos.
    - Abnahme: Die Zielwerte aus dem Abschnitt Kartenerkennung sind auf dem Testsatz erreicht.
-   - Stand 15.11.2026: vorbereitet ohne echte Fotos. Fingerabdrücke aller 1.804 Katalogbilder liegen vor; Umrisssuche, Entzerrung und Abgleich sind gebaut und mit künstlich verzerrten Katalogbildern geprüft (`docs/m3-selbsttest.md`, `docs/m3-szenentest.md`). Seit 15.11.2026 liest die App auch die Kartennummer (`docs/m3-nummern.md`). Offen: Test mit den Fotos des Nutzers (`npm run scan:photos`) und die Geschwindigkeitsmessung auf dem Handy.
+   - Stand 15.11.2026: vorbereitet ohne echte Fotos. Fingerabdrücke aller 1.804 Katalogbilder liegen vor; Umrisssuche, Entzerrung und Abgleich sind gebaut und mit künstlich verzerrten Katalogbildern geprüft (`docs/m3-selbsttest.md`, `docs/m3-szenentest.md`). Seit 15.11.2026 liest die App auch die Kartennummer (`docs/m3-nummern.md`).
+   - Stand 15.11.2026 mit 41 Fotos des Nutzers (`docs/m3-fotos.md`): richtige Karte an erster Stelle 92,7 %, unter den ersten drei 95,1 %; 36 Karten hätte die App von selbst gezählt, keine davon falsch. Die Zielwerte (95 % und 99 %) sind noch nicht erreicht. Schwachstellen: Karten in Hüllen auf dunklem Untergrund, eine in der Hand gehaltene Karte, Promo-Fassungen mit gleicher Nummernzeile. Offen bleibt die Geschwindigkeitsmessung auf dem Handy.
    - Abnahme: Der Test läuft bei jeder Änderung automatisch mit.
 5. **M4 Scan-Sitzung.** Fortlaufendes Scannen, Sitzungsliste, Übernahme der Auswahl.
    - Stand 15.11.2026: Scan-Seite und Sitzungsliste sind gebaut, vorgezogen vor die Abnahme von M3, damit der Nutzer mit echten Karten testen kann. Geprüft mit Testfotos im Browser und automatischen Tests der Zähl-Logik; mit einer echten Kamera noch nicht. Drucke, die sich weder im Bild noch in der Nummer unterscheiden, wählt der Nutzer unter „Andere Fassung dieser Karte“.
@@ -213,7 +217,7 @@ Die Antworten stehen in `docs/m0-bericht.md`.
 
 ### Vom Nutzer zu liefern
 
-- [ ] Mindestens 30 Testfotos nach dem Schema im Abschnitt Kartenerkennung, darunter einige Metal-Karten. Nötig ab M3.
+- [x] 41 Testfotos liegen unter `testdata/photos/` (lokal, nicht im Repository). Welche Karte jedes Foto zeigt, steht in `testdata/photos/labels.json`. Metal-Karten sind noch nicht dabei.
 - [x] Handymodell: Motorola Edge 60 Fusion.
 - [x] Öffentliches GitHub-Repository: https://github.com/Minusprivat/personal-card-scanner.
 - [x] Eine Exportdatei der eigenen Sammlung aus Piltover Archive, abgelegt unter `testdata/piltoverarchive/` (bleibt lokal, nicht im Repository).

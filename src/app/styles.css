@@ -713,3 +713,14 @@ button:disabled {
   padding: 0;
   font-size: 1rem;
 }
+
+/* Warnung: schon genug Karten dieser Fassung */
+.notice.limit {
+  margin: 0 0 10px;
+  font-size: 0.9rem;
+}
+
+.session-text .over-limit {
+  color: var(--danger);
+  white-space: normal;
+}
