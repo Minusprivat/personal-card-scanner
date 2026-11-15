@@ -4,7 +4,7 @@ import { buildIndex, type CatalogIndex } from '../data/catalog-index';
 import type { PriceData } from '../data/prices';
 import { loadCatalog, loadPrices, loadPublishedVersion } from './catalog-loader';
 import { isNativeApp } from './save';
-import { db } from './db';
+import { db, type SessionRow } from './db';
 
 export type CatalogState =
   | { status: 'loading' }
@@ -73,17 +73,30 @@ export function useAvailableUpdate(): string | null {
 
 const EMPTY = new Map<string, number>();
 
+const NO_ROWS: SessionRow[] = [];
+
+/** Zeilen der Scan-Sitzung, zuletzt gescannte zuerst. */
+export function useSession(): SessionRow[] {
+  const rows = useLiveQuery(() => db.session.toArray(), []);
+  return useMemo(() => (rows ? [...rows].sort((a, b) => b.at.localeCompare(a.at)) : NO_ROWS), [rows]);
+}
+
 /** Bestand als Sku-Id → Menge; aktualisiert sich bei jeder Änderung in der Datenbank. */
 export function useStock(): Map<string, number> {
   const rows = useLiveQuery(() => db.stock.toArray(), []);
   return useMemo(() => (rows ? new Map(rows.map((r) => [r.skuId, r.qty])) : EMPTY), [rows]);
 }
 
-export type Route = { page: 'collection' } | { page: 'files' } | { page: 'card'; cardId: string };
+export type Route =
+  | { page: 'collection' }
+  | { page: 'files' }
+  | { page: 'scan' }
+  | { page: 'card'; cardId: string };
 
 function parseHash(hash: string): Route {
   const parts = hash.replace(/^#\/?/, '').split('/');
   if (parts[0] === 'datei') return { page: 'files' };
+  if (parts[0] === 'scan') return { page: 'scan' };
   if (parts[0] === 'karte' && parts[1]) return { page: 'card', cardId: decodeURIComponent(parts[1]) };
   return { page: 'collection' };
 }

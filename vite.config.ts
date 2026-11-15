@@ -35,12 +35,20 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,png,svg,woff2}'],
+        // Die Erkennung (OpenCV, rund 13 MB) wird erst beim Öffnen des Scanners geladen
+        // und dann für den Betrieb ohne Netz aufgehoben, statt bei jeder Installation.
+        globIgnores: ['**/worker-*.js'],
         runtimeCaching: [
           {
             // Katalog und Preise: sofort aus dem Speicher, im Hintergrund auffrischen.
             urlPattern: ({ url }) => url.pathname.includes('/data/'),
             handler: 'StaleWhileRevalidate',
             options: { cacheName: 'tagesdaten' },
+          },
+          {
+            urlPattern: ({ url }) => /\/assets\/worker-.*\.js$/.test(url.pathname),
+            handler: 'CacheFirst',
+            options: { cacheName: 'erkennung' },
           },
           // Kartenbilder laufen bewusst nicht über den Service Worker: OpenRift liefert sie
           // ohne CORS-Freigabe, aber mit einem Jahr Cache-Dauer. Der Browser-Cache hält
@@ -49,6 +57,9 @@ export default defineConfig({
       },
     }),
   ],
+  worker: {
+    format: 'es',
+  },
   test: {
     include: ['tests/**/*.test.ts'],
   },

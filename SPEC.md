@@ -43,6 +43,9 @@ Die erste Version deckt drei Dinge ab: scannen, in einer Sitzung sammeln und aus
 - Bei unsicherem Treffer stehen bis zu drei Kandidaten zur Auswahl. Das betrifft vor allem Varianten desselben Motivs.
 - Eine Auswahl legt pro Scan das Finish fest (Normal, Foil, Metal, Metal Deluxe); angeboten werden nur die Finishes, die es für den Druck gibt. Die Kamera kann das nicht verlässlich unterscheiden.
 - Ein Knopf schaltet das Kameralicht, soweit das Handy es zulässt.
+- Bei mehreren Kameras lässt sich die Kamera wählen (am PC zum Beispiel das Handy als Webcam).
+- „Foto wählen“ erkennt eine Karte aus einem gespeicherten Foto, zum Testen oder wenn keine Kamera verfügbar ist.
+- Unter dem Kamerabild steht eine Diagnosezeile (Abstand, Vorsprung, Rechenzeit); sie hilft beim Einstellen der Erkennung.
 
 ### Scan-Sitzung
 
@@ -185,6 +188,7 @@ Die Sammlung kommt vor dem Scanner: So ist die App schon nutzbar, während die E
    - Stand 15.11.2026: vorbereitet ohne echte Fotos. Fingerabdrücke aller 1.804 Katalogbilder liegen vor; Umrisssuche, Entzerrung und Abgleich sind gebaut und mit künstlich verzerrten Katalogbildern geprüft (`docs/m3-selbsttest.md`, `docs/m3-szenentest.md`). Offen: Test mit den Fotos des Nutzers (`npm run scan:photos`), Lesen der Kartennummer, Einbau in die App samt Geschwindigkeitsmessung auf dem Handy.
    - Abnahme: Der Test läuft bei jeder Änderung automatisch mit.
 5. **M4 Scan-Sitzung.** Fortlaufendes Scannen, Sitzungsliste, Übernahme der Auswahl.
+   - Stand 15.11.2026: Scan-Seite und Sitzungsliste sind gebaut, vorgezogen vor die Abnahme von M3, damit der Nutzer mit echten Karten testen kann. Geprüft mit Testfotos im Browser und automatischen Tests der Zähl-Logik; mit einer echten Kamera noch nicht. Die Kartennummer wird noch nicht gelesen: Drucke mit gleichem Motiv wählt der Nutzer unter „Andere Fassung dieser Karte“.
    - Abnahme: 20 Karten nacheinander gescannt ergeben 20 Zeilen ohne Doppelzählung.
    - Abnahme: Nur angehakte Zeilen landen in der Sammlung; eine offene Sitzung ist nach einem Neustart noch da.
 6. **M5 Optional.** Englisch-Preis über CardTrader, Preisverlauf, Wunschliste.

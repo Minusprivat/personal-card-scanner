@@ -1,5 +1,6 @@
 import type { Catalog } from '../data/model';
 import type { PriceData } from '../data/prices';
+import type { FingerprintFile } from '../scan/matcher';
 import { db } from './db';
 import { isNativeApp } from './save';
 
@@ -54,6 +55,12 @@ export const loadPrices = (): Promise<PriceData> =>
   loadDaily<PriceData>(
     'prices.json',
     (p) => typeof p?.createdAt === 'string' && typeof p.entries === 'object' && p.entries !== null,
+  );
+
+export const loadFingerprintFile = (): Promise<FingerprintFile> =>
+  loadDaily<FingerprintFile>(
+    'fingerprints.json',
+    (f) => typeof f?.version === 'number' && typeof f.items === 'object' && f.items !== null,
   );
 
 /** Versionsnummer der zuletzt veröffentlichten App, z. B. "0.1.7". Nur für den Update-Hinweis der Android-App. */

@@ -11,6 +11,8 @@ export interface CatalogIndex {
   skuById: Map<string, Sku>;
   printBySkuId: Map<string, Print>;
   printsByCardId: Map<string, Print[]>;
+  /** Bild → Drucke, die es zeigen; für den Kartenscanner. */
+  printsByImageId: Map<string, Print[]>;
   skusByShortCode: Map<string, Sku[]>;
 }
 
@@ -23,8 +25,15 @@ export function buildIndex(catalog: Catalog): CatalogIndex {
 
   const printBySkuId = new Map<string, Print>();
   const printsByCardId = new Map<string, Print[]>();
+  const printsByImageId = new Map<string, Print[]>();
   for (const p of prints) {
     for (const s of p.skus) printBySkuId.set(s.id, p);
+    for (const imageId of new Set(p.skus.map((s) => s.imageId))) {
+      if (!imageId) continue;
+      const shown = printsByImageId.get(imageId);
+      if (shown) shown.push(p);
+      else printsByImageId.set(imageId, [p]);
+    }
     const list = printsByCardId.get(p.cardId);
     if (list) list.push(p);
     else printsByCardId.set(p.cardId, [p]);
@@ -46,6 +55,7 @@ export function buildIndex(catalog: Catalog): CatalogIndex {
     skuById: new Map(catalog.skus.map((s) => [s.id, s])),
     printBySkuId,
     printsByCardId,
+    printsByImageId,
     skusByShortCode,
   };
 }
