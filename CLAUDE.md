@@ -7,7 +7,7 @@ Private Riftbound-Sammlungs-App als PWA für Android und PC, zusätzlich als And
 - **M0 Datenprüfung:** fertig, Ergebnis in [docs/m0-bericht.md](docs/m0-bericht.md).
 - **M1 Gerüst und Sammlung:** gebaut; wartet auf die Prüfung durch den Nutzer (Handy, Import bei Piltover Archive).
 - **M2 Preise:** gebaut; Abnahme offen (drei tägliche Läufe in Folge, zehn Stichproben aus `docs/m2-stichproben.md` durch den Nutzer).
-- **M3 Erkennung:** vorbereitet (Fingerabdrücke, Umrisssuche, Abgleich, Prüfprogramme). Die Kartennummer wird gelesen (Tesseract). Mit 41 Fotos des Nutzers: 92,7 % richtige Karte vorn, kein falscher Selbstzähler ([docs/m3-fotos.md](docs/m3-fotos.md)); Ziel 95 % / 99 % noch nicht erreicht. Offen: Karten in Hüllen auf dunklem Untergrund, Geschwindigkeit auf dem Handy.
+- **M3 Erkennung:** vorbereitet (Fingerabdrücke, Umrisssuche, Abgleich, Prüfprogramme). Die Kartennummer wird gelesen (Tesseract). Mit 43 Fotos des Nutzers: 93,0 % richtige Karte vorn, kein falscher Selbstzähler ([docs/m3-fotos.md](docs/m3-fotos.md)); Ziel 95 % / 99 % noch nicht erreicht. Offen: Karten in Hüllen auf dunklem Untergrund, Geschwindigkeit auf dem Handy.
 - **M4 Scan-Sitzung:** gebaut (Scan-Seite, Sitzungsliste, Übernahme). Offen: Test mit echter Kamera durch den Nutzer; die Schwellen in `src/scan/tracker.ts` sind geschätzt und nach seinen Rückmeldungen einzustellen.
 
 Repository: https://github.com/Minusprivat/personal-card-scanner · Web-App: https://minusprivat.github.io/personal-card-scanner/ · APK: https://github.com/Minusprivat/personal-card-scanner/releases/download/apk/card-scanner.apk
@@ -59,6 +59,7 @@ Commits in diesem Repository nutzen die GitHub-noreply-Adresse (lokale Git-Einst
   - `worker.ts`, `protocol.ts`: Erkennung im Web Worker (lädt OpenCV, rund 13 MB, erst beim Öffnen des Scanners).
   - `tracker.ts`: wann ein Treffer zählt (stabil über mehrere Bilder, keine Doppelzählung liegender Karten).
   - `candidates.ts`: übersetzt Treffer in Drucke, sortiert die Auswahl und wendet die gelesene Nummer an.
+  - `ocr-guard.ts`: Zeitgrenzen für die Texterkennung; lädt oder antwortet sie nicht, läuft der Scanner ohne Nummer weiter.
   - `number.ts`: Lage der Nummernzeile, Aufbereitung für die Texterkennung, unscharfer Vergleich mit den Nummern der Kandidaten.
 - `src/app/scan/` – Scan-Seite: Kamera (`useCamera.ts`), Worker-Anbindung (`useRecognizer.ts`), Texterkennung (`ocr.ts`), `ScanView.tsx`, `SessionList.tsx`.
 - `public/ocr/` – Rechenkern und Sprachmodell der Texterkennung; entsteht durch `scripts/copy-ocr.mjs` aus `node_modules` und ist von Git ausgenommen.
@@ -90,6 +91,8 @@ Commits in diesem Repository nutzen die GitHub-noreply-Adresse (lokale Git-Einst
 - Piltover Archive nicht automatisch abrufen (Nutzungsbedingungen untersagen Scraping); das Format stammt allein aus den Dateien des Nutzers.
 - Preise kommen nur aus der Cardmarket-Preisdatei, nicht aus OpenRifts `/api/v1/prices` (enthält Platzhalter).
 - Bestand und Preis hängen an der Sku. Es gibt vier Finishes: Normal, Foil, Metal, Metal Deluxe. Metal hat keinen Cardmarket-Preis.
+- Keine `.gz`-Dateien unter `public/`: Der Android-Bau packt sie aus und benennt sie um, die App findet sie in der APK dann nicht (so fiel das Nummernlesen bis Version 0.1.9 in der APK aus). Der Workflow prüft nach dem Bau, dass jede Datei aus `dist/` unverändert in der APK liegt.
+- Der Scanner wartet nie unbegrenzt auf die Texterkennung; ein sicherer Bildtreffer zählt auch ohne gelesene Nummer.
 - Web-App und APK müssen beide funktionieren: Plattform-Unterschiede gehören hinter `isNativeApp()` in `save.ts` oder `catalog-loader.ts`.
 - Stimmt eine Annahme der SPEC nicht: anhalten, Abweichung mit Vorschlag nennen, dann weiterbauen.
 - Jeder Meilenstein endet mit Tests für die Abnahmekriterien und einer Prüfanleitung fürs Handy; danach auf Freigabe warten.

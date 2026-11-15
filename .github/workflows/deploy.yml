@@ -115,6 +115,20 @@ jobs:
           ./gradlew assembleDebug --no-daemon \
             -PappVersionCode="$APP_BUILD" \
             -PappVersionName="$APP_VERSION"
+      - name: Prüfen, dass die APK alle Dateien der Web-App unverändert enthält
+        # Der Android-Bau packt zum Beispiel .gz-Dateien aus und benennt sie um; die App
+        # fände sie dann nicht mehr. Jede Datei aus dist/ muss unter gleichem Namen in der APK liegen.
+        run: |
+          export LC_ALL=C
+          unzip -Z1 android/app/build/outputs/apk/debug/app-debug.apk | sort > apk-inhalt.txt
+          (cd dist && find . -type f | sed 's|^\./|assets/public/|' | sort) > erwartet.txt
+          fehlend=$(comm -23 erwartet.txt apk-inhalt.txt)
+          if [ -n "$fehlend" ]; then
+            echo "Diese Dateien fehlen in der APK oder heißen dort anders:"
+            echo "$fehlend"
+            exit 1
+          fi
+          echo "$(wc -l < erwartet.txt) Dateien geprüft."
       - name: APK als Download bereitstellen
         env:
           GH_TOKEN: ${{ github.token }}

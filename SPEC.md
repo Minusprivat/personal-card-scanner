@@ -119,6 +119,7 @@ Die Erkennung läuft vollständig auf dem Handy und gleicht das Kamerabild mit v
    - Ist der Bildabgleich sicher, wählt die Nummer nur zwischen gleich aussehenden Drucken (bis zu zwei Lesefehler). Einen unsicheren Bildtreffer bestätigt sie nur, wenn sie fehlerfrei gelesen wurde.
    - Die Zeile wird an mehreren leicht verschobenen Stellen gesucht, weil der Umriss auf echten Fotos selten genau sitzt.
    - Steht eine fehlerfrei gelesene Nummer im Katalog, obwohl der Bildabgleich die Karte nicht vorschlägt, rückt sie in der Auswahl nach vorn; von selbst gezählt wird auf dieser Grundlage nie.
+   - Die Texterkennung ist eine Zugabe und hält den Scanner nie auf: Lädt sie nicht oder antwortet sie nicht innerhalb fester Fristen, zählt ein sicherer Bildtreffer ohne Nummer; die Diagnosezeile meldet dann „Nummernlesen nicht verfügbar“.
    - Grenzen: Drucke mit gleicher Nummer (mit und ohne Promo-Stempel) und signierte Fassungen (Sternchen) trennt die Nummer nicht; dort schlägt die App die gewöhnliche Fassung vor. Die Karte muss im Kamerabild etwa 480 Bildpunkte hoch sein.
 4. **Entscheiden:** Ist ein Treffer über mehrere Bilder hinweg stabil und eindeutig, geht er in die Sitzung. Sonst erscheinen die Kandidaten zur Auswahl.
 
@@ -192,7 +193,7 @@ Die Sammlung kommt vor dem Scanner: So ist die App schon nutzbar, während die E
 4. **M3 Erkennung.** Fingerabdrücke, Erkennungskette, automatischer Test gegen die Fotos.
    - Abnahme: Die Zielwerte aus dem Abschnitt Kartenerkennung sind auf dem Testsatz erreicht.
    - Stand 15.11.2026: vorbereitet ohne echte Fotos. Fingerabdrücke aller 1.804 Katalogbilder liegen vor; Umrisssuche, Entzerrung und Abgleich sind gebaut und mit künstlich verzerrten Katalogbildern geprüft (`docs/m3-selbsttest.md`, `docs/m3-szenentest.md`). Seit 15.11.2026 liest die App auch die Kartennummer (`docs/m3-nummern.md`).
-   - Stand 15.11.2026 mit 41 Fotos des Nutzers (`docs/m3-fotos.md`): richtige Karte an erster Stelle 92,7 %, unter den ersten drei 95,1 %; 36 Karten hätte die App von selbst gezählt, keine davon falsch. Die Zielwerte (95 % und 99 %) sind noch nicht erreicht. Schwachstellen: Karten in Hüllen auf dunklem Untergrund, eine in der Hand gehaltene Karte, Promo-Fassungen mit gleicher Nummernzeile. Offen bleibt die Geschwindigkeitsmessung auf dem Handy.
+   - Stand 15.11.2026 mit 43 Fotos des Nutzers (`docs/m3-fotos.md`): richtige Karte an erster Stelle 93,0 %, unter den ersten drei 95,3 %; 38 Karten hätte die App von selbst gezählt, keine davon falsch. Die Zielwerte (95 % und 99 %) sind noch nicht erreicht. Schwachstellen: Karten in Hüllen auf dunklem Untergrund, eine in der Hand gehaltene Karte, Promo-Fassungen mit gleicher Nummernzeile. Offen bleibt die Geschwindigkeitsmessung auf dem Handy.
    - Abnahme: Der Test läuft bei jeder Änderung automatisch mit.
 5. **M4 Scan-Sitzung.** Fortlaufendes Scannen, Sitzungsliste, Übernahme der Auswahl.
    - Stand 15.11.2026: Scan-Seite und Sitzungsliste sind gebaut, vorgezogen vor die Abnahme von M3, damit der Nutzer mit echten Karten testen kann. Geprüft mit Testfotos im Browser und automatischen Tests der Zähl-Logik; mit einer echten Kamera noch nicht. Drucke, die sich weder im Bild noch in der Nummer unterscheiden, wählt der Nutzer unter „Andere Fassung dieser Karte“.
@@ -217,7 +218,7 @@ Die Antworten stehen in `docs/m0-bericht.md`.
 
 ### Vom Nutzer zu liefern
 
-- [x] 41 Testfotos liegen unter `testdata/photos/` (lokal, nicht im Repository). Welche Karte jedes Foto zeigt, steht in `testdata/photos/labels.json`. Metal-Karten sind noch nicht dabei.
+- [x] 43 Testfotos liegen unter `testdata/photos/` (lokal, nicht im Repository). Welche Karte jedes Foto zeigt, steht in `testdata/photos/labels.json`. Metal-Karten sind noch nicht dabei.
 - [x] Handymodell: Motorola Edge 60 Fusion.
 - [x] Öffentliches GitHub-Repository: https://github.com/Minusprivat/personal-card-scanner.
 - [x] Eine Exportdatei der eigenen Sammlung aus Piltover Archive, abgelegt unter `testdata/piltoverarchive/` (bleibt lokal, nicht im Repository).

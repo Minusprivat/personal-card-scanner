@@ -17,7 +17,7 @@ import type { FrameResult } from '../../scan/protocol';
 import { DEFAULT_TRACKER, ScanTracker, type TrackerState } from '../../scan/tracker';
 import { stockLine } from '../CollectionView';
 import { db, type SessionRow } from '../db';
-import { readLine, warmUpOcr } from './ocr';
+import { ocrFailed, readLine, warmUpOcr } from './ocr';
 import { SessionList } from './SessionList';
 import { useCamera } from './useCamera';
 import { useRecognizer } from './useRecognizer';
@@ -167,7 +167,9 @@ export function ScanView({
   const describe = (hit: ScanHit | null, result: FrameResult, number?: string) =>
     (hit
       ? `Abstand ${hit.distance} · Vorsprung ${hit.margin} · ${result.ms.toFixed(0)} ms`
-      : `keine Karte · ${result.ms.toFixed(0)} ms`) + (number ? ` · Nummer „${number}“` : '');
+      : `keine Karte · ${result.ms.toFixed(0)} ms`) +
+    (number ? ` · Nummer „${number}“` : '') +
+    (ocrFailed() ? ' · Nummernlesen nicht verfügbar' : '');
 
   // Laufende Erkennung im Kamerabild.
   useEffect(() => {
@@ -175,8 +177,7 @@ export function ScanView({
     let stopped = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
 
-    const tick = async () => {
-      if (stopped) return;
+    const step = async () => {
       const video = camera.video.current;
       const shot =
         video && smallCanvas.current && fullCanvas.current
@@ -199,7 +200,8 @@ export function ScanView({
           if (state.status === 'idle') setCandidates(null);
           else if (state.status === 'sure' && state.isNew && hit) {
             // Bildabgleich ist sicher: Die Nummer wählt nur noch zwischen Drucken derselben Karte.
-            const read = await readNumber(shot, result, hit, true);
+            // Scheitert das Lesen, zählt die Karte trotzdem: Der Bildabgleich war sicher.
+            const read = await readNumber(shot, result, hit, true).catch(() => null);
             if (stopped) return;
             number = read?.text;
             const chosen = read?.confirmed ? read.hit : hit;
@@ -209,7 +211,7 @@ export function ScanView({
             const now = performance.now();
             if (now - lastNumberTry.current > NUMBER_RETRY_MS) {
               lastNumberTry.current = now;
-              const read = await readNumber(shot, result, hit, false);
+              const read = await readNumber(shot, result, hit, false).catch(() => null);
               if (stopped) return;
               number = read?.text;
               if (read?.confirmed) await add(read.hit, read.hit.prints[0]!, hit.distance, hit.motif);
@@ -217,10 +219,21 @@ export function ScanView({
               else setCandidates(read?.hit ?? hit);
             }
           }
-          setDiagnosis((previous) => (number || state.status !== 'sure' ? describe(hit, result, number) : previous));
+          // Solange eine gezählte Karte liegen bleibt, bleibt die Zeile von ihrem Scan stehen.
+          const counted = state.status === 'sure' && !state.isNew;
+          setDiagnosis((previous) => (number || !counted ? describe(hit, result, number) : previous));
         }
       }
-      timer = setTimeout(() => void tick(), FRAME_PAUSE_MS);
+    };
+    // Ein Fehler bei einem einzelnen Bild darf die Schleife nicht beenden.
+    const tick = async () => {
+      if (stopped) return;
+      try {
+        await step();
+      } catch (err) {
+        console.error('Scan-Schritt fehlgeschlagen', err);
+      }
+      if (!stopped) timer = setTimeout(() => void tick(), FRAME_PAUSE_MS);
     };
     void tick();
 
@@ -261,7 +274,7 @@ export function ScanView({
         return;
       }
       const sure = hit.distance <= DEFAULT_TRACKER.sureDistance && hit.margin >= DEFAULT_TRACKER.minMargin;
-      const read = await readNumber(shot, result, hit, sure);
+      const read = await readNumber(shot, result, hit, sure).catch(() => null);
       setDiagnosis(describe(hit, result, read?.text));
       if (sure || read?.confirmed) {
         const chosen = read?.confirmed ? read.hit : hit;
