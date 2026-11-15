@@ -5,6 +5,9 @@ name: App veröffentlichen
 on:
   push:
     branches: [main]
+  # Täglich nach Erscheinen der Cardmarket-Preisdatei (gegen 02:45 Uhr deutscher Zeit).
+  schedule:
+    - cron: '30 4 * * *'
   workflow_dispatch:
 
 permissions:
@@ -21,15 +24,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          # Die Versionsnummer ist die Zahl der Commits; dafür braucht es den ganzen Verlauf.
+          fetch-depth: 0
+      - name: Versionsnummer bestimmen
+        run: echo "APP_VERSION=0.1.$(git rev-list --count HEAD)" >> "$GITHUB_ENV"
       - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
       - run: npm ci
-      - name: Katalog laden
-        run: npm run data:build
+      # Tests laufen vor dem Datenabruf: Die Abnahme-Schwellen aus M0 sollen die tägliche
+      # Aktualisierung nicht anhalten. Unlesbare Daten bricht das Datenskript selbst ab.
       - run: npm test
-      # Die Android-App nutzt denselben Katalog, damit die Quelle nur einmal abgerufen wird.
+      - name: Katalog und Preise laden
+        run: npm run data:build
+      - name: Versionsdatei für den Update-Hinweis der Android-App
+        run: echo "{\"version\":\"$APP_VERSION\"}" > public/data/version.json
+      # Die Android-App nutzt dieselben Daten, damit die Quellen nur einmal abgerufen werden.
       - uses: actions/upload-artifact@v7
         with:
           name: tagesdaten
@@ -55,11 +67,21 @@ jobs:
 
   apk:
     needs: build
+    # Der tägliche Lauf ändert nur Daten; die holt sich die App selbst. Eine neue APK
+    # entsteht nur, wenn sich der Code geändert hat.
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Versionsnummer bestimmen
+        run: |
+          build=$(git rev-list --count HEAD)
+          echo "APP_BUILD=$build" >> "$GITHUB_ENV"
+          echo "APP_VERSION=0.1.$build" >> "$GITHUB_ENV"
       - uses: actions/setup-node@v7
         with:
           node-version: 24
@@ -82,14 +104,14 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon \
-            -PappVersionCode=${{ github.run_number }} \
-            -PappVersionName=0.1.${{ github.run_number }}
+            -PappVersionCode="$APP_BUILD" \
+            -PappVersionName="$APP_VERSION"
       - name: APK als Download bereitstellen
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           cp android/app/build/outputs/apk/debug/app-debug.apk card-scanner.apk
-          notes="Version 0.1.${{ github.run_number }} vom $(date -u +%d.%m.%Y). Die Datei card-scanner.apk auf dem Handy öffnen, um die App zu installieren oder zu aktualisieren."
+          notes="Version $APP_VERSION vom $(date -u +%d.%m.%Y). Die Datei card-scanner.apk auf dem Handy öffnen, um die App zu installieren oder zu aktualisieren."
           if gh release view apk >/dev/null 2>&1; then
             gh release upload apk card-scanner.apk --clobber
             gh release edit apk --notes "$notes"

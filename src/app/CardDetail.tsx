@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { imageUrl, printCode, printImageId, type CatalogIndex } from '../data/catalog-index';
 import { DOMAIN_LABELS } from '../data/filter';
 import { FINISH_LABELS, type Print, type Sku } from '../data/model';
+import { cardmarketEnglishUrl, formatDay, formatEuro, type PriceData } from '../data/prices';
 import { variantLabel } from '../data/prints';
 import { db } from './db';
 
@@ -14,10 +15,12 @@ function close() {
 export function CardDetail({
   index,
   stock,
+  prices,
   cardId,
 }: {
   index: CatalogIndex;
   stock: Map<string, number>;
+  prices: PriceData | null;
   cardId: string;
 }) {
   const card = index.cardById.get(cardId);
@@ -56,16 +59,27 @@ export function CardDetail({
 
       <div className="prints">
         {prints.map((print) => (
-          <PrintCard key={print.key} index={index} print={print} stock={stock} />
+          <PrintCard key={print.key} index={index} print={print} stock={stock} prices={prices} />
         ))}
       </div>
     </div>
   );
 }
 
-function PrintCard({ index, print, stock }: { index: CatalogIndex; print: Print; stock: Map<string, number> }) {
+function PrintCard({
+  index,
+  print,
+  stock,
+  prices,
+}: {
+  index: CatalogIndex;
+  print: Print;
+  stock: Map<string, number>;
+  prices: PriceData | null;
+}) {
   const imageId = printImageId(print);
   const first = print.skus[0]!;
+  const productId = print.skus.map((s) => prices?.entries[s.id]?.productId).find((id) => id !== undefined);
   return (
     <section className="print">
       <div className="art large">
@@ -80,18 +94,43 @@ function PrintCard({ index, print, stock }: { index: CatalogIndex; print: Print;
         {index.setById.get(print.setId)?.name} · {variantLabel(first)}
       </p>
       {print.skus.map((sku) => (
-        <Counter key={sku.id} sku={sku} qty={stock.get(sku.id) ?? 0} />
+        <Counter key={sku.id} sku={sku} qty={stock.get(sku.id) ?? 0} price={priceText(prices, sku)} />
       ))}
-      <p className="price">Preis: folgt mit Meilenstein 2</p>
+      {prices && (
+        <p className="price">
+          Cardmarket Low über alle Sprachen, Stand {formatDay(prices.createdAt)}.
+          {productId !== undefined && (
+            <>
+              {' '}
+              <a className="textlink" href={cardmarketEnglishUrl(productId)} target="_blank" rel="noopener">
+                Auf Cardmarket (EN) öffnen
+              </a>
+            </>
+          )}
+        </p>
+      )}
     </section>
   );
 }
 
-function Counter({ sku, qty }: { sku: Sku; qty: number }) {
+/** „0,65 € · Trend 1,20 €“, „kein Preis“ oder leer, solange die Preise noch laden. */
+function priceText(prices: PriceData | null, sku: Sku): string {
+  if (!prices) return '';
+  const entry = prices.entries[sku.id];
+  if (!entry || entry.low === null) return 'kein Preis';
+  const low = formatEuro(entry.low);
+  if (!entry.hasSales) return `${low} · ohne Verkäufe, nicht im Sammlungswert`;
+  return entry.trend === null ? low : `${low} · Trend ${formatEuro(entry.trend)}`;
+}
+
+function Counter({ sku, qty, price }: { sku: Sku; qty: number; price: string }) {
   const label = FINISH_LABELS[sku.finish];
   return (
     <div className="counter">
-      <span className="counter-label">{label}</span>
+      <span className="counter-label">
+        {label}
+        {price && <small>{price}</small>}
+      </span>
       <button
         type="button"
         aria-label={`${label}: eine weniger`}

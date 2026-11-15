@@ -14,7 +14,8 @@
     "data:report:offline": "tsx scripts/build-data/index.ts report --offline",
     "icons": "node scripts/make-icons.mjs",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "data:samples": "tsx scripts/build-data/index.ts samples"
   },
   "devDependencies": {
     "@capacitor/cli": "^8.6.2",

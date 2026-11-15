@@ -341,10 +341,51 @@ button.link {
   font-variant-numeric: tabular-nums;
 }
 
+.counter-label small {
+  display: block;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
 .price {
   margin: 12px 0 0;
   color: var(--muted);
   font-size: 0.85rem;
+}
+
+.textlink {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+/* Sammlungswert */
+.value {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 12px;
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.value strong {
+  font-size: 1.05rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.value span {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.version {
+  margin: 0 0 14px;
+  color: var(--muted);
+  font-size: 0.8rem;
+  text-align: center;
 }
 
 /* Sicherung */

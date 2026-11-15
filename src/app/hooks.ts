@@ -1,7 +1,9 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { buildIndex, type CatalogIndex } from '../data/catalog-index';
-import { loadCatalog } from './catalog-loader';
+import type { PriceData } from '../data/prices';
+import { loadCatalog, loadPrices, loadPublishedVersion } from './catalog-loader';
+import { isNativeApp } from './save';
 import { db } from './db';
 
 export type CatalogState =
@@ -26,6 +28,47 @@ export function useCatalog(): CatalogState {
     };
   }, []);
   return state;
+}
+
+/** Preise sind Beiwerk: Fehlen sie, zeigt die App „kein Preis“ und läuft weiter. */
+export function usePrices(): PriceData | null {
+  const [prices, setPrices] = useState<PriceData | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    loadPrices()
+      .then((p) => {
+        if (!cancelled) setPrices(p);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  return prices;
+}
+
+/** Version dieser App, beim Bau gesetzt; lokal "dev". */
+export const APP_VERSION: string = import.meta.env.VITE_APP_VERSION ?? 'dev';
+
+const buildNumber = (version: string) => Number.parseInt(version.split('.').pop() ?? '', 10);
+
+/**
+ * Die Android-App aktualisiert sich nicht selbst. Liefert die neuere veröffentlichte
+ * Version, sobald es eine gibt; in der Web-App und lokal immer null.
+ */
+export function useAvailableUpdate(): string | null {
+  const [update, setUpdate] = useState<string | null>(null);
+  useEffect(() => {
+    if (!isNativeApp() || APP_VERSION === 'dev') return;
+    let cancelled = false;
+    void loadPublishedVersion().then((published) => {
+      if (!cancelled && published && buildNumber(published) > buildNumber(APP_VERSION)) setUpdate(published);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  return update;
 }
 
 const EMPTY = new Map<string, number>();

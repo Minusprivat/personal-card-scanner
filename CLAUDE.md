@@ -6,7 +6,8 @@ Private Riftbound-Sammlungs-App als PWA für Android und PC, zusätzlich als And
 
 - **M0 Datenprüfung:** fertig, Ergebnis in [docs/m0-bericht.md](docs/m0-bericht.md).
 - **M1 Gerüst und Sammlung:** gebaut; wartet auf die Prüfung durch den Nutzer (Handy, Import bei Piltover Archive).
-- **M2 Preise:** offen.
+- **M2 Preise:** gebaut; Abnahme offen (drei tägliche Läufe in Folge, zehn Stichproben aus `docs/m2-stichproben.md` durch den Nutzer).
+- **M3 Erkennung:** offen; braucht die Testfotos des Nutzers.
 
 Repository: https://github.com/Minusprivat/personal-card-scanner · Web-App: https://minusprivat.github.io/personal-card-scanner/ · APK: https://github.com/Minusprivat/personal-card-scanner/releases/download/apk/card-scanner.apk
 
@@ -22,9 +23,12 @@ Repository: https://github.com/Minusprivat/personal-card-scanner · Web-App: htt
 | Katalog und Preise laden, M0-Bericht neu schreiben | `npm run data:report` |
 | Katalog für die App schreiben (`public/data/`) | `npm run data:build` |
 | Beides ohne Netz, aus `.cache/` | `npm run data:report:offline`, `npm run data:build:offline` |
+| Stichproben für den Preisvergleich schreiben | `npm run data:samples` |
 | App-Symbole neu erzeugen | `npm run icons` |
 
-Deploy: Jeder Push auf `main` startet `.github/workflows/deploy.yml`: Katalog laden, testen, Web-App auf GitHub Pages, APK bauen und im Release `apk` ersetzen. Die tägliche Aktualisierung folgt mit M2.
+Deploy: Jeder Push auf `main` startet `.github/workflows/deploy.yml`: testen, Katalog und Preise laden, Web-App auf GitHub Pages, APK bauen und im Release `apk` ersetzen. Derselbe Workflow läuft täglich um 04:30 UTC und aktualisiert nur die Daten (keine neue APK). GitHub schaltet geplante Läufe ab, wenn 60 Tage lang nichts ins Repository kommt; dann unter Actions wieder einschalten.
+
+Version: `0.1.<Zahl der Commits>`. Sie steht in der App unter „Sicherung“, in `data/version.json` und als `versionCode` der APK. Die Android-App vergleicht sie und zeigt einen Update-Hinweis.
 
 Die APK lässt sich lokal nicht bauen (kein Android SDK, nur Java 8 auf dem PC). `npx cap sync android` läuft lokal; den Gradle-Bau macht nur GitHub Actions. Nach Änderungen an `android/` deshalb den Workflow-Lauf abwarten und prüfen.
 
@@ -40,7 +44,7 @@ Commits in diesem Repository nutzen die GitHub-noreply-Adresse (lokale Git-Einst
   - `csv.ts`, `backup.ts`, `piltover.ts`: Sicherung (JSON), Tabelle (CSV), Piltover-Archive-Format.
 - `src/app/` – React-Oberfläche. `db.ts` hält den Bestand in IndexedDB (Dexie).
   - `save.ts`: Speichern und Teilen je Umgebung (Android-App, PC-Browser, Handy-Browser).
-  - `catalog-loader.ts`: lädt den Katalog; die Android-App holt ihn von GitHub Pages und merkt ihn sich.
+  - `catalog-loader.ts`: lädt Katalog, Preise und Versionsdatei; die Android-App holt sie von GitHub Pages und merkt sie sich.
 - `android/` – Capacitor-Projekt. `app/debug.p12` ist der feste, bewusst öffentliche Signaturschlüssel; nicht ersetzen, sonst lassen sich Updates nur nach Deinstallation (Datenverlust) einspielen.
 - `scripts/build-data/` – Node-Datenskript.
   - `sources/openrift.ts`: einzige Stelle, die das OpenRift-Format kennt.

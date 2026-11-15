@@ -137,7 +137,8 @@ Angezeigt wird Cardmarket Low je Druck und Finish mit Stand-Datum. Einen Low-Pre
 
 - **Nicht vorgesehen:** automatisches Auslesen der Cardmarket-Angebotsseiten. Sie sind gegen automatische Zugriffe gesperrt.
 - **Prüfregeln:** Fehlt ein Preis, steht „kein Preis“ statt 0 €. Offensichtliche Platzhalterangebote ohne Verkäufe fließen nicht in den Sammlungswert ein.
-- **Sammlungswert** rechnet mit Stufe 1 und nennt das Stand-Datum der Preisdatei.
+- **Sammlungswert** rechnet mit Stufe 1 und nennt das Stand-Datum der Preisdatei. Karten ohne Preis (auch alle Metal-Fassungen) und Angebote ohne belegten Verkauf zählen nicht mit; die App nennt ihre Anzahl.
+- **Android-App:** holt Preise und Katalog beim Start von GitHub Pages und merkt sie sich. Neue Daten gelten ab dem nächsten Start. Für neue Funktionen zeigt sie einen Hinweis mit Link zur neuen APK.
 - **Aktualität:** einmal täglich. Ein Live-Preis ist nur über den Knopf aus Stufe 2 sichtbar.
 
 ## Architektur und Tech-Stack
@@ -176,6 +177,7 @@ Die Sammlung kommt vor dem Scanner: So ist die App schon nutzbar, während die E
    - Stand 14.11.2026: gebaut und automatisch getestet. Offen sind die Prüfung auf dem Handy und der Import-Test bei Piltover Archive durch den Nutzer.
 3. **M2 Preise.** Tägliche GitHub Action, Preisanzeige, Sammlungswert, Cardmarket-Knopf.
    - Abnahme: Die Action läuft drei Tage in Folge ohne Eingriff, die App zeigt das jeweils neue Stand-Datum.
+   - Stand 15.11.2026: gebaut. Der tägliche Lauf ist eingerichtet (04:30 UTC); die drei Tage und die Stichproben (`docs/m2-stichproben.md`) stehen noch aus.
    - Abnahme: Zehn Stichproben stimmen mit dem Low-Wert auf der Cardmarket-Seite des Vortags überein.
 4. **M3 Erkennung.** Fingerabdrücke, Erkennungskette, automatischer Test gegen die Fotos.
    - Abnahme: Die Zielwerte aus dem Abschnitt Kartenerkennung sind auf dem Testsatz erreicht.

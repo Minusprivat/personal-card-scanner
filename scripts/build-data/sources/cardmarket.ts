@@ -34,11 +34,3 @@ export async function loadPriceGuide(opts: FetchOptions): Promise<PriceGuide> {
   const res = await fetchJsonCached<unknown>('cardmarket-price-guide', CARDMARKET_PRICE_GUIDE_URL, opts);
   return parsePriceGuide(res.data);
 }
-
-/** Cardmarket-Sprachkennung für Englisch im Produktlink (`language=1`). */
-export const CARDMARKET_LANGUAGE_EN = 1;
-
-/** Produktseite mit Sprachfilter Englisch. */
-export function cardmarketEnglishUrl(productId: number): string {
-  return `https://www.cardmarket.com/en/Riftbound/Products?idProduct=${productId}&language=${CARDMARKET_LANGUAGE_EN}`;
-}

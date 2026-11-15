@@ -12,7 +12,16 @@ import { FINISH_LABELS } from '../data/model';
 import { exportPiltover, importPiltover, type PiltoverImport } from '../data/piltover';
 import { variantLabel } from '../data/prints';
 import { db } from './db';
-import { canShareFiles, NATIVE_FOLDER, saveFile, shareFile, type OutFile, type SaveResult } from './save';
+import { APP_VERSION } from './hooks';
+import {
+  canShareFiles,
+  isNativeApp,
+  NATIVE_FOLDER,
+  saveFile,
+  shareFile,
+  type OutFile,
+  type SaveResult,
+} from './save';
 
 type ExportKind = 'backup' | 'piltover' | 'csv';
 
@@ -275,6 +284,10 @@ export function FilesView({ index, stock }: { index: CatalogIndex; stock: Map<st
           </FileButton>
         </div>
       </section>
+
+      <p className="version">
+        Version {APP_VERSION} · {isNativeApp() ? 'Android-App' : 'Web-App'}
+      </p>
     </div>
   );
 }

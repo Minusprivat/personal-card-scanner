@@ -2,7 +2,8 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { CatalogSource } from '../../src/data/model';
-import { MIN_MAIN_COVERAGE_PCT, renderReport, renderUnpricedList } from './report';
+import { buildPriceData, formatDay } from '../../src/data/prices';
+import { MIN_MAIN_COVERAGE_PCT, renderPriceSamples, renderReport, renderUnpricedList } from './report';
 import { loadPriceGuide } from './sources/cardmarket';
 import { OpenRiftSource } from './sources/openrift';
 import { computeStats, pct } from './stats';
@@ -47,10 +48,31 @@ async function build(offline: boolean) {
 
   const dir = path.join(ROOT, 'public', 'data');
   await mkdir(dir, { recursive: true });
-  const file = path.join(dir, 'catalog.json');
   const json = JSON.stringify(data);
-  await writeFile(file, json);
+  await writeFile(path.join(dir, 'catalog.json'), json);
   console.log(`public/data/catalog.json: ${data.skus.length} Einträge, ${(json.length / 1024).toFixed(0)} KB.`);
+
+  const links = await source.loadCardmarketLinks();
+  const guide = await loadPriceGuide({ cacheDir: CACHE_DIR, offline });
+  const prices = buildPriceData(catalog.skus, links, guide);
+  const pricesJson = JSON.stringify(prices);
+  await writeFile(path.join(dir, 'prices.json'), pricesJson);
+  const withLow = Object.values(prices.entries).filter((e) => e.low !== null).length;
+  console.log(
+    `public/data/prices.json: ${withLow} Preise, Stand ${formatDay(prices.createdAt)}, ${(pricesJson.length / 1024).toFixed(0)} KB.`,
+  );
+}
+
+/** Schreibt die Stichproben-Liste für die Abnahme von M2. */
+async function samples(offline: boolean) {
+  const opts = { cacheDir: CACHE_DIR, offline };
+  const source: CatalogSource = new OpenRiftSource(opts);
+  const catalog = await source.loadCatalog();
+  const prices = buildPriceData(catalog.skus, await source.loadCardmarketLinks(), await loadPriceGuide(opts));
+  const docs = path.join(ROOT, 'docs');
+  await mkdir(docs, { recursive: true });
+  await writeFile(path.join(docs, 'm2-stichproben.md'), renderPriceSamples(catalog, prices));
+  console.log(`docs/m2-stichproben.md geschrieben, Preisstand ${formatDay(prices.createdAt)}.`);
 }
 
 const [command, ...flags] = process.argv.slice(2);
@@ -59,7 +81,9 @@ if (command === 'report') {
   await report(offline);
 } else if (command === 'build') {
   await build(offline);
+} else if (command === 'samples') {
+  await samples(offline);
 } else {
-  console.error('Aufruf: tsx scripts/build-data/index.ts report|build [--offline]');
+  console.error('Aufruf: tsx scripts/build-data/index.ts report|build|samples [--offline]');
   process.exitCode = 1;
 }

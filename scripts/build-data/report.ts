@@ -1,4 +1,6 @@
-import { FINISH_LABELS, FINISHES } from '../../src/data/model';
+import { FINISH_LABELS, FINISHES, type Catalog } from '../../src/data/model';
+import { cardmarketEnglishUrl, formatDay, formatEuro, type PriceData } from '../../src/data/prices';
+import { variantLabel } from '../../src/data/prints';
 import { pct, type Coverage, type M0Stats, type UnpricedSku } from './stats';
 
 /** Abnahmegrenze M0: Anteil der Normal- und Foil-Drucke regulärer Sets mit Preis. */
@@ -153,5 +155,56 @@ ${rows(other)}
 ## Metal und Metal Deluxe (${s.metalList.length})
 
 ${rows(s.metalList)}
+`;
+}
+
+/**
+ * Zehn gleichmäßig über den Katalog verteilte Preise zum Gegenprüfen auf Cardmarket (Abnahme M2).
+ * Cardmarket weist automatische Zugriffe ab; die Sichtprüfung macht der Nutzer.
+ */
+export function renderPriceSamples(catalog: Catalog, prices: PriceData, count = 10): string {
+  const cards = new Map(catalog.cards.map((c) => [c.id, c.name]));
+  const priced = catalog.skus.filter((s) => {
+    const e = prices.entries[s.id];
+    return e && e.low !== null && e.hasSales;
+  });
+  const lowOf = (id: string) => prices.entries[id]!.low!;
+  // Je zur Hälfte Normal und Foil. Die meisten Karten kosten wenige Cent; damit trotzdem
+  // alle Preislagen vorkommen, wird gleichmäßig über die verschiedenen Preise gewählt.
+  const spread = (finish: string, n: number) => {
+    const list = priced
+      .filter((s) => s.finish === finish)
+      .sort((a, b) => lowOf(a.id) - lowOf(b.id) || a.rank - b.rank);
+    const levels = [...new Set(list.map((s) => lowOf(s.id)))];
+    const take = Math.min(n, levels.length);
+    return Array.from({ length: take }, (_, i) => {
+      const level = levels[Math.floor(((i + 0.5) * levels.length) / take)]!;
+      return list.find((s) => lowOf(s.id) === level)!;
+    });
+  };
+  const half = Math.ceil(count / 2);
+  const picks = [...spread('normal', half), ...spread('foil', count - half)];
+
+  return `# M2: Stichproben für den Preisvergleich
+
+Preisdatei von Cardmarket vom ${formatDay(prices.createdAt)}. Erzeugt von \`npm run data:samples\`.
+
+Zum Prüfen den Link öffnen und den Wert „Ab“ (niedrigster Preis über alle Sprachen) vergleichen: bei Normal ohne Foil-Filter, bei Foil mit Foil-Filter. Der Link setzt den Sprachfilter Englisch; für den Vergleich mit „alle Sprachen“ den Filter entfernen. Der Live-Preis kann vom Stand der Datei abweichen, weil seitdem gekauft oder neu eingestellt wurde.
+
+${table(
+  ['Nr.', 'Nummer', 'Name', 'Variante', 'Finish', 'Low in der App', 'Cardmarket'],
+  picks.map((s, i) => {
+    const e = prices.entries[s.id]!;
+    return [
+      i + 1,
+      s.publicCode || s.shortCode,
+      cards.get(s.cardId) ?? s.printedName,
+      variantLabel(s),
+      FINISH_LABELS[s.finish],
+      formatEuro(e.low!),
+      `[öffnen](${cardmarketEnglishUrl(e.productId)})`,
+    ];
+  }),
+)}
 `;
 }

@@ -6,6 +6,9 @@ import { VitePWA } from 'vite-plugin-pwa';
 // GitHub Pages liefert die App unter /personal-card-scanner/ aus; lokal unter /.
 const base = process.env.BASE_PATH ?? '/';
 
+// Versionsnummer für Anzeige und Update-Hinweis; GitHub Actions setzt APP_VERSION.
+process.env.VITE_APP_VERSION = process.env.APP_VERSION ?? 'dev';
+
 export default defineConfig({
   base,
   plugins: [

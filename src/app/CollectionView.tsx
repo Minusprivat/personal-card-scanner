@@ -10,6 +10,7 @@ import {
   type VariantFilter,
 } from '../data/filter';
 import { FINISH_LABELS, type Print } from '../data/model';
+import { collectionValue, formatDay, formatEuro, type CollectionValue, type PriceData } from '../data/prices';
 import { variantLabel } from '../data/prints';
 import { cardHref } from './hooks';
 
@@ -29,7 +30,15 @@ export function stockLine(print: Print, stock: Map<string, number>): string {
 const ownedOf = (print: Print, stock: Map<string, number>) =>
   print.skus.reduce((sum, s) => sum + (stock.get(s.id) ?? 0), 0);
 
-export function CollectionView({ index, stock }: { index: CatalogIndex; stock: Map<string, number> }) {
+export function CollectionView({
+  index,
+  stock,
+  prices,
+}: {
+  index: CatalogIndex;
+  stock: Map<string, number>;
+  prices: PriceData | null;
+}) {
   const [filters, setFilters] = useState<Filters>(NO_FILTERS);
   const [limit, setLimit] = useState(PAGE);
   const query = useDeferredValue(filters.query);
@@ -66,6 +75,7 @@ export function CollectionView({ index, stock }: { index: CatalogIndex; stock: M
     [index],
   );
   const ownedPrints = useMemo(() => prints.filter((p) => ownedOf(p, stock) > 0).length, [prints, stock]);
+  const value = useMemo(() => collectionValue(stock, prices), [stock, prices]);
   const active = JSON.stringify({ ...filters, query: filters.query.trim() }) !== JSON.stringify(NO_FILTERS);
 
   return (
@@ -115,6 +125,8 @@ export function CollectionView({ index, stock }: { index: CatalogIndex; stock: M
         </select>
       </div>
 
+      <ValueLine value={value} prices={prices} />
+
       <p className="count">
         {prints.length} Drucke, davon {ownedPrints} im Besitz
         {active && (
@@ -135,6 +147,21 @@ export function CollectionView({ index, stock }: { index: CatalogIndex; stock: M
       )}
       {limit < prints.length && <div ref={sentinel} className="sentinel" />}
     </>
+  );
+}
+
+/** Sammlungswert über die ganze Sammlung, unabhängig von den Filtern. */
+function ValueLine({ value, prices }: { value: CollectionValue; prices: PriceData | null }) {
+  if (!prices) return null;
+  const without = value.unpricedQty + value.placeholderQty;
+  return (
+    <p className="value">
+      <strong>Sammlungswert {formatEuro(value.total)}</strong>
+      <span>
+        Cardmarket Low (alle Sprachen), Stand {formatDay(prices.createdAt)}
+        {without > 0 && <> · {without === 1 ? '1 Karte' : `${without} Karten`} ohne Preis nicht eingerechnet</>}
+      </span>
+    </p>
   );
 }
 

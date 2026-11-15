@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { parsePriceGuide, cardmarketEnglishUrl } from '../scripts/build-data/sources/cardmarket';
+import { parsePriceGuide } from '../scripts/build-data/sources/cardmarket';
 import { parseOpenRiftCatalog, parseOpenRiftLinks } from '../scripts/build-data/sources/openrift';
 import { computeStats, pct } from '../scripts/build-data/stats';
 import { renderReport, renderUnpricedList } from '../scripts/build-data/report';
-import { lookupPrice, priceFromRow } from '../src/data/prices';
+import { cardmarketEnglishUrl, lookupPrice, priceFromRow } from '../src/data/prices';
 import { groupPrints, variantLabel } from '../src/data/prints';
 import { rawCatalog, rawLinks, rawPriceGuide, sku } from './fixtures';
 
