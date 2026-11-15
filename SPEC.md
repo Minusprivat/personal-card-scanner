@@ -114,6 +114,9 @@ Die Erkennung läuft vollständig auf dem Handy und gleicht das Kamerabild mit v
 1. **Karte finden:** Kartenumriss im Kamerabild erkennen und perspektivisch auf ein festes Format entzerren.
 2. **Motiv abgleichen:** Bild-Fingerabdruck (Perceptual Hash) von Artwork und Gesamtkarte berechnen und die ähnlichsten Drucke suchen.
 3. **Nummer lesen:** Die Zeile mit der Kartennummer per Texterkennung auslesen. Sie entscheidet, wenn mehrere Drucke dasselbe Motiv tragen.
+   - Gelesen wird nur an Entscheidungsstellen: wenn gleich aussehende Drucke verschiedene Nummern tragen oder der Bildabgleich unsicher ist. Der Text wird unscharf mit den Nummern der Kandidaten verglichen.
+   - Ist der Bildabgleich sicher, wählt die Nummer nur zwischen gleich aussehenden Drucken (bis zu zwei Lesefehler). Einen unsicheren Bildtreffer bestätigt sie nur, wenn sie fehlerfrei gelesen wurde.
+   - Grenzen: Drucke mit gleicher Nummer (mit und ohne Promo-Stempel) und signierte Fassungen (Sternchen) trennt die Nummer nicht; dort schlägt die App die gewöhnliche Fassung vor. Die Karte muss im Kamerabild etwa 480 Bildpunkte hoch sein.
 4. **Entscheiden:** Ist ein Treffer über mehrere Bilder hinweg stabil und eindeutig, geht er in die Sitzung. Sonst erscheinen die Kandidaten zur Auswahl.
 
 - **Fingerabdrücke** entstehen im täglichen Datenskript aus den Katalogbildern. Im Repository liegen nur die Fingerabdrücke (`data/fingerprints.json`), keine Bildkopien. Für die Entwicklung der Erkennung liegen die Bilder vorübergehend auf dem Entwicklungs-PC unter `.cache/images/` (nicht im Repository); nach Abschluss von M3 werden sie gelöscht.
@@ -159,7 +162,7 @@ Das tägliche Skript holt Katalog und Preise, berechnet die Fingerabdrücke und 
 | Speicher | IndexedDB über Dexie | Bestand und Sitzung lokal, auch ohne Netz |
 | Kamera | `getUserMedia`, Rückkamera | Braucht HTTPS, das GitHub Pages mitbringt |
 | Bildverarbeitung | OpenCV.js im Web Worker | Umriss finden und entzerren, ohne die Oberfläche zu blockieren |
-| Texterkennung | Tesseract.js, nur die Zeile der Kartennummer | Kleiner Ausschnitt, eingeschränkter Zeichensatz |
+| Texterkennung | Tesseract.js, nur die Zeile der Kartennummer; die App liefert Rechenkern und Sprachmodell selbst aus (rund 7 MB, erst beim Scannen geladen) | Kleiner Ausschnitt, eingeschränkter Zeichensatz, keine fremden Server |
 | Fingerabdruck | Eigenes Modul, in App und Datenskript identisch | Beide Seiten müssen exakt gleich rechnen |
 | Datenskript | Node.js unter `scripts/build-data` | Gleiche Sprache wie die App |
 | Automatik | GitHub Actions, einmal täglich nachts | Kostenlos; die Preisdatei erscheint täglich |
@@ -185,10 +188,10 @@ Die Sammlung kommt vor dem Scanner: So ist die App schon nutzbar, während die E
    - Abnahme: Zehn Stichproben stimmen mit dem Low-Wert auf der Cardmarket-Seite des Vortags überein.
 4. **M3 Erkennung.** Fingerabdrücke, Erkennungskette, automatischer Test gegen die Fotos.
    - Abnahme: Die Zielwerte aus dem Abschnitt Kartenerkennung sind auf dem Testsatz erreicht.
-   - Stand 15.11.2026: vorbereitet ohne echte Fotos. Fingerabdrücke aller 1.804 Katalogbilder liegen vor; Umrisssuche, Entzerrung und Abgleich sind gebaut und mit künstlich verzerrten Katalogbildern geprüft (`docs/m3-selbsttest.md`, `docs/m3-szenentest.md`). Offen: Test mit den Fotos des Nutzers (`npm run scan:photos`), Lesen der Kartennummer, Einbau in die App samt Geschwindigkeitsmessung auf dem Handy.
+   - Stand 15.11.2026: vorbereitet ohne echte Fotos. Fingerabdrücke aller 1.804 Katalogbilder liegen vor; Umrisssuche, Entzerrung und Abgleich sind gebaut und mit künstlich verzerrten Katalogbildern geprüft (`docs/m3-selbsttest.md`, `docs/m3-szenentest.md`). Seit 15.11.2026 liest die App auch die Kartennummer (`docs/m3-nummern.md`). Offen: Test mit den Fotos des Nutzers (`npm run scan:photos`) und die Geschwindigkeitsmessung auf dem Handy.
    - Abnahme: Der Test läuft bei jeder Änderung automatisch mit.
 5. **M4 Scan-Sitzung.** Fortlaufendes Scannen, Sitzungsliste, Übernahme der Auswahl.
-   - Stand 15.11.2026: Scan-Seite und Sitzungsliste sind gebaut, vorgezogen vor die Abnahme von M3, damit der Nutzer mit echten Karten testen kann. Geprüft mit Testfotos im Browser und automatischen Tests der Zähl-Logik; mit einer echten Kamera noch nicht. Die Kartennummer wird noch nicht gelesen: Drucke mit gleichem Motiv wählt der Nutzer unter „Andere Fassung dieser Karte“.
+   - Stand 15.11.2026: Scan-Seite und Sitzungsliste sind gebaut, vorgezogen vor die Abnahme von M3, damit der Nutzer mit echten Karten testen kann. Geprüft mit Testfotos im Browser und automatischen Tests der Zähl-Logik; mit einer echten Kamera noch nicht. Drucke, die sich weder im Bild noch in der Nummer unterscheiden, wählt der Nutzer unter „Andere Fassung dieser Karte“.
    - Abnahme: 20 Karten nacheinander gescannt ergeben 20 Zeilen ohne Doppelzählung.
    - Abnahme: Nur angehakte Zeilen landen in der Sammlung; eine offene Sitzung ist nach einem Neustart noch da.
 6. **M5 Optional.** Englisch-Preis über CardTrader, Preisverlauf, Wunschliste.

@@ -3,15 +3,23 @@
  *
  * Der Dateiname beginnt mit der erwarteten Kartennummer, danach folgen beliebige
  * Angaben hinter einem Unterstrich, zum Beispiel `OGN-142_foil_huelle.jpg`.
+ * Geprüft wird dieselbe Kette wie in der App: Karte finden, Bildabgleich, Nummer lesen.
  *
  * Aufruf: npm run scan:photos   (braucht `npm run data:fingerprints`)
  */
 import { mkdir, readdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { buildIndex } from '../../src/data/catalog-index';
+import { applyNumber, interpretMatches, isLandscape, numberCanHelp } from '../../src/scan/candidates';
+import { extractStrip } from '../../src/scan/detect';
 import { FP_VERSION } from '../../src/scan/fingerprint';
+import { numberStrip, prepareStrip, STRIP_H } from '../../src/scan/number';
+import { MATCHES_PER_FRAME } from '../../src/scan/protocol';
 import { recognize } from '../../src/scan/recognize';
+import { DEFAULT_TRACKER } from '../../src/scan/tracker';
 import { loadTestData, pct, ROOT } from './common';
 import { getCv, matFromImage } from './cv';
+import { createOcr } from './ocr';
 
 const PHOTO_DIR = path.join(ROOT, 'testdata', 'photos');
 /** Zielwerte aus der SPEC. */
@@ -30,14 +38,15 @@ async function main() {
   }
 
   const cv = await getCv();
+  const ocr = await createOcr();
   const data = await loadTestData();
-  const codesOf = (imageId: string) =>
-    (data.skusByImage.get(imageId) ?? []).map((s) => normalizeCode(s.shortCode));
+  const index = buildIndex(data.catalog);
 
   let notFound = 0;
   let top1 = 0;
   let top3 = 0;
   let unknown = 0;
+  let numbersRead = 0;
   let totalMs = 0;
   const rows: string[] = [];
 
@@ -48,37 +57,51 @@ async function main() {
 
     const frame = await matFromImage(cv, path.join(PHOTO_DIR, file));
     const start = performance.now();
-    const result = recognize(cv, frame, data.fingerprints, 3);
+    const result = recognize(cv, frame, data.fingerprints, MATCHES_PER_FRAME);
+    let hit = result && interpretMatches(result.matches, index);
+    let number = '';
+    if (result && hit) {
+      const sure = hit.distance <= DEFAULT_TRACKER.sureDistance && hit.margin >= DEFAULT_TRACKER.minMargin;
+      if (numberCanHelp(hit, !sure)) {
+        const strip = numberStrip(result.detection.corners, result.flipped, isLandscape(hit.prints[0]!, index));
+        number = await ocr.readLine(extractStrip(cv, frame, strip.quad, strip.width, STRIP_H, prepareStrip));
+        const byNumber = number ? applyNumber(hit, number, index, !sure) : null;
+        if (byNumber) {
+          hit = byNumber;
+          numbersRead++;
+        }
+      }
+    }
     const ms = performance.now() - start;
     totalMs += ms;
     frame.delete();
 
     let verdict: string;
     let guess = '–';
-    if (!result) {
+    if (!hit || hit.distance > DEFAULT_TRACKER.maxDistance) {
       notFound++;
-      verdict = 'Karte nicht gefunden';
+      verdict = hit ? `keine Karte erkannt (Abstand ${hit.distance})` : 'Karte nicht gefunden';
     } else {
-      const ranks = result.matches.map((m) => codesOf(m.imageId));
-      const best = data.skusByImage.get(result.matches[0]!.imageId)?.[0];
-      guess = `${best?.publicCode ?? '?'} (Abstand ${result.matches[0]!.distance})`;
-      if (ranks[0]!.includes(expected)) {
+      const codes = hit.prints.slice(0, 3).map((p) => normalizeCode(p.skus[0]!.shortCode));
+      guess = `${hit.prints[0]!.skus[0]!.publicCode} (Abstand ${hit.distance}${number ? `, gelesen „${number}“` : ''})`;
+      if (codes[0] === expected) {
         top1++;
         top3++;
         verdict = 'richtig';
-      } else if (ranks.some((r) => r.includes(expected))) {
+      } else if (codes.includes(expected)) {
         top3++;
         verdict = 'unter den ersten drei';
       } else verdict = 'falsch';
     }
     if (!known) verdict += ' (Nummer im Dateinamen steht nicht im Katalog)';
     rows.push(`| ${file} | ${guess} | ${verdict} | ${ms.toFixed(0)} ms |`);
-    console.log(`${file}: ${verdict}${result ? `, erkannt als ${guess}` : ''}`);
+    console.log(`${file}: ${verdict}${guess !== '–' ? `, erkannt als ${guess}` : ''}`);
   }
+  await ocr.close();
 
   const n = files.length;
   const ok = (100 * top1) / n >= TARGET_TOP1 && (100 * top3) / n >= TARGET_TOP3;
-  console.log(`\n${n} Fotos: an erster Stelle richtig ${pct(top1, n)}, unter den ersten drei ${pct(top3, n)}, nicht gefunden ${notFound}.`);
+  console.log(`\n${n} Fotos: an erster Stelle richtig ${pct(top1, n)}, unter den ersten drei ${pct(top3, n)}, nicht erkannt ${notFound}.`);
 
   const report = `# M3: Erkennung auf echten Fotos
 
@@ -88,12 +111,13 @@ Erzeugt von \`npm run scan:photos\`. ${n} Fotos aus \`testdata/photos/\`, Finger
 | --- | --- | --- |
 | Richtiger Druck an erster Stelle | ${pct(top1, n)} (${top1} von ${n}) | mindestens ${TARGET_TOP1} % |
 | Richtiger Druck unter den ersten drei | ${pct(top3, n)} (${top3} von ${n}) | mindestens ${TARGET_TOP3} % |
-| Karte im Bild nicht gefunden | ${notFound} | – |
+| Karte nicht erkannt | ${notFound} | – |
+| Kartennummer gelesen und zugeordnet | ${numbersRead} | – |
 | Mittlere Dauer je Foto (Entwicklungs-PC) | ${(totalMs / n).toFixed(0)} ms | unter 1 s auf dem Handy |
 
 Ziele ${ok ? 'erreicht' : '**nicht erreicht**'}.${unknown ? ` ${unknown} Dateinamen nennen eine Nummer, die nicht im Katalog steht.` : ''}
 
-Als richtig gilt ein Treffer, wenn das erkannte Bild zu einem Druck mit der Nummer aus dem Dateinamen gehört. Drucke mit gleicher Nummer und gleichem Bild (Normal und Foil) unterscheidet dieser Test nicht.
+Als richtig gilt ein Treffer, wenn der vorgeschlagene Druck die Nummer aus dem Dateinamen trägt. Drucke mit gleicher Nummer (Normal und Foil, mit und ohne Stempel) unterscheidet dieser Test nicht.
 
 | Foto | Erkannt als | Ergebnis | Dauer |
 | --- | --- | --- | --- |

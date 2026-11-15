@@ -7,7 +7,7 @@ Private Riftbound-Sammlungs-App als PWA für Android und PC, zusätzlich als And
 - **M0 Datenprüfung:** fertig, Ergebnis in [docs/m0-bericht.md](docs/m0-bericht.md).
 - **M1 Gerüst und Sammlung:** gebaut; wartet auf die Prüfung durch den Nutzer (Handy, Import bei Piltover Archive).
 - **M2 Preise:** gebaut; Abnahme offen (drei tägliche Läufe in Folge, zehn Stichproben aus `docs/m2-stichproben.md` durch den Nutzer).
-- **M3 Erkennung:** vorbereitet (Fingerabdrücke, Umrisssuche, Abgleich, Prüfprogramme). Offen: Test mit echten Fotos des Nutzers, Kartennummer lesen (OCR), Geschwindigkeit auf dem Handy.
+- **M3 Erkennung:** vorbereitet (Fingerabdrücke, Umrisssuche, Abgleich, Prüfprogramme). Die Kartennummer wird gelesen (Tesseract). Offen: Test mit echten Fotos des Nutzers, Geschwindigkeit auf dem Handy.
 - **M4 Scan-Sitzung:** gebaut (Scan-Seite, Sitzungsliste, Übernahme). Offen: Test mit echter Kamera durch den Nutzer; die Schwellen in `src/scan/tracker.ts` sind geschätzt und nach seinen Rückmeldungen einzustellen.
 
 Repository: https://github.com/Minusprivat/personal-card-scanner · Web-App: https://minusprivat.github.io/personal-card-scanner/ · APK: https://github.com/Minusprivat/personal-card-scanner/releases/download/apk/card-scanner.apk
@@ -31,6 +31,8 @@ Repository: https://github.com/Minusprivat/personal-card-scanner · Web-App: htt
 | Erkennung prüfen: verzerrte Katalogbilder | `npm run scan:selftest` |
 | Erkennung prüfen: künstliche Szenen, ganze Kette | `npm run scan:scenes` |
 | Erkennung prüfen: echte Fotos aus `testdata/photos/` (Abnahme M3) | `npm run scan:photos` |
+| Nummernlesen prüfen (braucht große Katalogbilder unter `.cache/full/`) | `npm run scan:numbers` |
+| Dateien der Texterkennung nach `public/ocr/` kopieren (läuft vor `dev` und `build` von selbst) | `npm run ocr:copy` |
 
 Deploy: Jeder Push auf `main` startet `.github/workflows/deploy.yml`: testen, Katalog und Preise laden, Web-App auf GitHub Pages, APK bauen und im Release `apk` ersetzen. Derselbe Workflow läuft täglich um 04:30 UTC und aktualisiert nur die Daten (keine neue APK). GitHub schaltet geplante Läufe ab, wenn 60 Tage lang nichts ins Repository kommt; dann unter Actions wieder einschalten.
 
@@ -55,8 +57,10 @@ Commits in diesem Repository nutzen die GitHub-noreply-Adresse (lokale Git-Einst
   - `recognize.ts`: ganze Kette für ein Kamerabild.
   - `worker.ts`, `protocol.ts`: Erkennung im Web Worker (lädt OpenCV, rund 13 MB, erst beim Öffnen des Scanners).
   - `tracker.ts`: wann ein Treffer zählt (stabil über mehrere Bilder, keine Doppelzählung liegender Karten).
-  - `candidates.ts`: übersetzt Treffer in Drucke und sortiert die Auswahl.
-- `src/app/scan/` – Scan-Seite: Kamera (`useCamera.ts`), Worker-Anbindung (`useRecognizer.ts`), `ScanView.tsx`, `SessionList.tsx`.
+  - `candidates.ts`: übersetzt Treffer in Drucke, sortiert die Auswahl und wendet die gelesene Nummer an.
+  - `number.ts`: Lage der Nummernzeile, Aufbereitung für die Texterkennung, unscharfer Vergleich mit den Nummern der Kandidaten.
+- `src/app/scan/` – Scan-Seite: Kamera (`useCamera.ts`), Worker-Anbindung (`useRecognizer.ts`), Texterkennung (`ocr.ts`), `ScanView.tsx`, `SessionList.tsx`.
+- `public/ocr/` – Rechenkern und Sprachmodell der Texterkennung; entsteht durch `scripts/copy-ocr.mjs` aus `node_modules` und ist von Git ausgenommen.
 - `scripts/scan/` – Prüfprogramme der Erkennung (laufen unter Node mit OpenCV.js und sharp).
 - `data/fingerprints.json` – Fingerabdrücke aller Katalogbilder. Liegt im Repository, damit der tägliche Lauf nur neue Bilder abruft; nach `npm run data:fingerprints` mit einchecken.
 - `src/app/` – React-Oberfläche. `db.ts` hält den Bestand in IndexedDB (Dexie).
@@ -78,6 +82,7 @@ Commits in diesem Repository nutzen die GitHub-noreply-Adresse (lokale Git-Einst
 - Fremde Schnittstellen sparsam abrufen: Katalog und Preise höchstens einmal pro Stunde (`http.ts` erzwingt das), Bilder nur für neue Drucke und gedrosselt.
 - Keine Kartenbilder im Repository, nur daraus berechnete Fingerabdrücke. `.cache/images/` ist ein Entwicklungs-Zwischenspeicher auf dem PC und wird nach Abschluss von M3 gelöscht.
 - Der eingebaute Browser gibt keine Kamera frei. Die Scan-Seite dort über „Foto wählen“ prüfen; Testbilder nur vorübergehend unter `public/` ablegen und vor dem Commit löschen.
+- Die Nummer darf einen unsicheren Bildtreffer nur bestätigen, wenn sie fehlerfrei gelesen wurde (`allowedErrors` in `candidates.ts`); Nachbarkarten im Set unterscheiden sich oft nur in einer Ziffer.
 - Erkennung nicht an künstlichen Tests feinschleifen: Maßgeblich sind die echten Fotos unter `testdata/photos/`.
 - Piltover Archive nicht automatisch abrufen (Nutzungsbedingungen untersagen Scraping); das Format stammt allein aus den Dateien des Nutzers.
 - Preise kommen nur aus der Cardmarket-Preisdatei, nicht aus OpenRifts `/api/v1/prices` (enthält Platzhalter).

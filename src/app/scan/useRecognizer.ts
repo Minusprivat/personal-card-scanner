@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { FrameResult, FromWorker, ToWorker } from '../../scan/protocol';
+import type { FrameResult, FromWorker, StripResult, ToWorker } from '../../scan/protocol';
 import { loadFingerprintFile } from '../catalog-loader';
 
 export type RecognizerStatus = 'loading' | 'ready' | 'error';
@@ -7,9 +7,16 @@ export type RecognizerStatus = 'loading' | 'ready' | 'error';
 export interface Recognizer {
   status: RecognizerStatus;
   error: string | null;
-  /** Schickt ein Bild an die Erkennung. Solange ein Bild in Arbeit ist, wird das nächste abgelehnt (null). */
+  /** Schickt ein Bild an die Erkennung. Solange eine Anfrage in Arbeit ist, wird die nächste abgelehnt (null). */
   recognize(frame: ImageData): Promise<FrameResult | null>;
+  /**
+   * Zieht die Nummernzeile aus einem Bildausschnitt gerade und bereitet sie für die
+   * Texterkennung auf. `quad` sind die Ecken der Zeile im Ausschnitt (x, y je Ecke).
+   */
+  strip(crop: ImageData, quad: number[], outWidth: number): Promise<ImageData | null>;
 }
+
+type Answer = FrameResult | StripResult;
 
 /**
  * Startet den Erkennungs-Worker, sobald die Scan-Seite offen ist, und beendet ihn
@@ -19,7 +26,7 @@ export function useRecognizer(): Recognizer {
   const [status, setStatus] = useState<RecognizerStatus>('loading');
   const [error, setError] = useState<string | null>(null);
   const worker = useRef<Worker | null>(null);
-  const pending = useRef<{ id: number; resolve: (r: FrameResult | null) => void } | null>(null);
+  const pending = useRef<{ id: number; resolve: (r: Answer | null) => void } | null>(null);
   const nextId = useRef(1);
 
   useEffect(() => {
@@ -61,16 +68,38 @@ export function useRecognizer(): Recognizer {
     };
   }, []);
 
-  const recognize = useCallback((frame: ImageData): Promise<FrameResult | null> => {
+  /** Schickt eine Anfrage; die Bilddaten wandern ohne Kopie in den Worker. */
+  const ask = useCallback((build: (id: number) => ToWorker, data: ArrayBuffer): Promise<Answer | null> => {
     const w = worker.current;
     if (!w || pending.current) return Promise.resolve(null);
     return new Promise((resolve) => {
       const id = nextId.current++;
       pending.current = { id, resolve };
-      const data = frame.data.buffer as ArrayBuffer;
-      w.postMessage({ type: 'frame', id, width: frame.width, height: frame.height, data } satisfies ToWorker, [data]);
+      w.postMessage(build(id), [data]);
     });
   }, []);
 
-  return { status, error, recognize };
+  const recognize = useCallback(
+    async (frame: ImageData): Promise<FrameResult | null> => {
+      const data = frame.data.buffer as ArrayBuffer;
+      const answer = await ask((id) => ({ type: 'frame', id, width: frame.width, height: frame.height, data }), data);
+      return answer?.type === 'result' ? answer : null;
+    },
+    [ask],
+  );
+
+  const strip = useCallback(
+    async (crop: ImageData, quad: number[], outWidth: number): Promise<ImageData | null> => {
+      const data = crop.data.buffer as ArrayBuffer;
+      const answer = await ask(
+        (id) => ({ type: 'strip', id, width: crop.width, height: crop.height, data, quad, outWidth }),
+        data,
+      );
+      if (answer?.type !== 'strip') return null;
+      return new ImageData(new Uint8ClampedArray(answer.data), answer.width, answer.height);
+    },
+    [ask],
+  );
+
+  return { status, error, recognize, strip };
 }

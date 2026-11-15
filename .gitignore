@@ -11,4 +11,6 @@ testdata/piltoverarchive/*
 
 # Tagesdaten entstehen beim Deploy aus dem Datenskript
 public/data/
+# Dateien der Texterkennung kopiert scripts/copy-ocr.mjs aus node_modules
+public/ocr/
 dev-dist/

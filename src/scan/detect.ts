@@ -294,3 +294,37 @@ export function warp(cv: OpenCv, src: OpenCv, corners: Corners): Pixels {
     out.delete();
   }
 }
+
+/** Graustufenbild der Nummernzeile für die Texterkennung, RGBA. */
+export interface StripImage {
+  data: Uint8ClampedArray;
+  width: number;
+  height: number;
+}
+
+/**
+ * Zieht die Nummernzeile aus dem Bild gerade und bereitet sie für die Texterkennung auf.
+ * `quad` sind die Ecken der Zeile in `src` in Leserichtung.
+ */
+export function extractStrip(
+  cv: OpenCv,
+  src: OpenCv,
+  quad: [Point, Point, Point, Point],
+  width: number,
+  height: number,
+  prepare: (rgba: ArrayLike<number>, width: number, height: number) => Uint8ClampedArray,
+): StripImage {
+  const from = cv.matFromArray(4, 1, cv.CV_32FC2, quad.flatMap((p) => [p.x, p.y]));
+  const to = cv.matFromArray(4, 1, cv.CV_32FC2, [0, 0, width, 0, width, height, 0, height]);
+  const m = cv.getPerspectiveTransform(from, to);
+  const out = new cv.Mat();
+  try {
+    cv.warpPerspective(src, out, m, new cv.Size(width, height), cv.INTER_CUBIC);
+    return { data: prepare(out.data as Uint8Array, width, height), width, height };
+  } finally {
+    from.delete();
+    to.delete();
+    m.delete();
+    out.delete();
+  }
+}
