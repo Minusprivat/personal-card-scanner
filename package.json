@@ -15,15 +15,22 @@
     "icons": "node scripts/make-icons.mjs",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "data:samples": "tsx scripts/build-data/index.ts samples"
+    "data:samples": "tsx scripts/build-data/index.ts samples",
+    "data:images": "tsx scripts/build-data/index.ts images",
+    "data:fingerprints": "tsx scripts/build-data/index.ts fingerprints",
+    "scan:selftest": "tsx scripts/scan/selftest.ts",
+    "scan:scenes": "tsx scripts/scan/scenetest.ts",
+    "scan:photos": "tsx scripts/scan/phototest.ts"
   },
   "devDependencies": {
     "@capacitor/cli": "^8.6.2",
+    "@techstark/opencv-js": "^5.0.0-release.1",
     "@types/node": "^24.0.0",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.3.0",
     "fake-indexeddb": "^6.2.8",
+    "sharp": "^0.35.5",
     "tsx": "^4.19.0",
     "typescript": "^5.6.0",
     "vite": "^8.3.8",

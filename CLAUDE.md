@@ -7,7 +7,7 @@ Private Riftbound-Sammlungs-App als PWA für Android und PC, zusätzlich als And
 - **M0 Datenprüfung:** fertig, Ergebnis in [docs/m0-bericht.md](docs/m0-bericht.md).
 - **M1 Gerüst und Sammlung:** gebaut; wartet auf die Prüfung durch den Nutzer (Handy, Import bei Piltover Archive).
 - **M2 Preise:** gebaut; Abnahme offen (drei tägliche Läufe in Folge, zehn Stichproben aus `docs/m2-stichproben.md` durch den Nutzer).
-- **M3 Erkennung:** offen; braucht die Testfotos des Nutzers.
+- **M3 Erkennung:** vorbereitet (Fingerabdrücke, Umrisssuche, Abgleich, Prüfprogramme). Offen: Test mit echten Fotos des Nutzers, Kartennummer lesen (OCR), Einbau in die App.
 
 Repository: https://github.com/Minusprivat/personal-card-scanner · Web-App: https://minusprivat.github.io/personal-card-scanner/ · APK: https://github.com/Minusprivat/personal-card-scanner/releases/download/apk/card-scanner.apk
 
@@ -25,6 +25,11 @@ Repository: https://github.com/Minusprivat/personal-card-scanner · Web-App: htt
 | Beides ohne Netz, aus `.cache/` | `npm run data:report:offline`, `npm run data:build:offline` |
 | Stichproben für den Preisvergleich schreiben | `npm run data:samples` |
 | App-Symbole neu erzeugen | `npm run icons` |
+| Kartenbilder für die Entwicklung laden (einmalig, gedrosselt, nach `.cache/images/`) | `npm run data:images` |
+| Fingerabdrücke für neue Katalogbilder berechnen | `npm run data:fingerprints` |
+| Erkennung prüfen: verzerrte Katalogbilder | `npm run scan:selftest` |
+| Erkennung prüfen: künstliche Szenen, ganze Kette | `npm run scan:scenes` |
+| Erkennung prüfen: echte Fotos aus `testdata/photos/` (Abnahme M3) | `npm run scan:photos` |
 
 Deploy: Jeder Push auf `main` startet `.github/workflows/deploy.yml`: testen, Katalog und Preise laden, Web-App auf GitHub Pages, APK bauen und im Release `apk` ersetzen. Derselbe Workflow läuft täglich um 04:30 UTC und aktualisiert nur die Daten (keine neue APK). GitHub schaltet geplante Läufe ab, wenn 60 Tage lang nichts ins Repository kommt; dann unter Actions wieder einschalten.
 
@@ -42,6 +47,13 @@ Commits in diesem Repository nutzen die GitHub-noreply-Adresse (lokale Git-Einst
   - `prices.ts`: Cardmarket Low je Finish, „kein Preis“ statt 0 €.
   - `catalog-index.ts`, `filter.ts`: Nachschlagetabellen, Suche und Filter.
   - `csv.ts`, `backup.ts`, `piltover.ts`: Sicherung (JSON), Tabelle (CSV), Piltover-Archive-Format.
+- `src/scan/` – Kartenerkennung, von App und Prüfprogrammen gemeinsam genutzt.
+  - `fingerprint.ts`: Bild-Fingerabdruck (Perceptual Hash über ganze Karte und Motiv). Bei Änderungen `FP_VERSION` erhöhen und alle Fingerabdrücke neu berechnen.
+  - `matcher.ts`: sucht die ähnlichsten Katalogbilder.
+  - `detect.ts`: Kartenumriss finden und entzerren; OpenCV wird hereingereicht.
+  - `recognize.ts`: ganze Kette für ein Kamerabild.
+- `scripts/scan/` – Prüfprogramme der Erkennung (laufen unter Node mit OpenCV.js und sharp).
+- `data/fingerprints.json` – Fingerabdrücke aller Katalogbilder. Liegt im Repository, damit der tägliche Lauf nur neue Bilder abruft; nach `npm run data:fingerprints` mit einchecken.
 - `src/app/` – React-Oberfläche. `db.ts` hält den Bestand in IndexedDB (Dexie).
   - `save.ts`: Speichern und Teilen je Umgebung (Android-App, PC-Browser, Handy-Browser).
   - `catalog-loader.ts`: lädt Katalog, Preise und Versionsdatei; die Android-App holt sie von GitHub Pages und merkt sie sich.
@@ -59,7 +71,8 @@ Commits in diesem Repository nutzen die GitHub-noreply-Adresse (lokale Git-Einst
 
 - Die Katalogquelle bleibt austauschbar: Außerhalb von `scripts/build-data/sources/` kennt kein Code das OpenRift-Format.
 - Fremde Schnittstellen sparsam abrufen: Katalog und Preise höchstens einmal pro Stunde (`http.ts` erzwingt das), Bilder nur für neue Drucke und gedrosselt.
-- Keine Kartenbilder im Repository, nur daraus berechnete Fingerabdrücke.
+- Keine Kartenbilder im Repository, nur daraus berechnete Fingerabdrücke. `.cache/images/` ist ein Entwicklungs-Zwischenspeicher auf dem PC und wird nach Abschluss von M3 gelöscht.
+- Erkennung nicht an künstlichen Tests feinschleifen: Maßgeblich sind die echten Fotos unter `testdata/photos/`.
 - Piltover Archive nicht automatisch abrufen (Nutzungsbedingungen untersagen Scraping); das Format stammt allein aus den Dateien des Nutzers.
 - Preise kommen nur aus der Cardmarket-Preisdatei, nicht aus OpenRifts `/api/v1/prices` (enthält Platzhalter).
 - Bestand und Preis hängen an der Sku. Es gibt vier Finishes: Normal, Foil, Metal, Metal Deluxe. Metal hat keinen Cardmarket-Preis.

@@ -39,6 +39,15 @@ jobs:
       - run: npm test
       - name: Katalog und Preise laden
         run: npm run data:build
+      # Fingerabdrücke neuer Kartenbilder merkt sich GitHub zwischen den Läufen,
+      # damit jedes Bild nur ein einziges Mal abgerufen wird.
+      - uses: actions/cache@v6
+        with:
+          path: .cache/fingerprints.json
+          key: fingerprints-v1-${{ github.run_id }}
+          restore-keys: fingerprints-v1-
+      - name: Fingerabdrücke für neue Kartenbilder
+        run: npm run data:fingerprints
       - name: Versionsdatei für den Update-Hinweis der Android-App
         run: echo "{\"version\":\"$APP_VERSION\"}" > public/data/version.json
       # Die Android-App nutzt dieselben Daten, damit die Quellen nur einmal abgerufen werden.

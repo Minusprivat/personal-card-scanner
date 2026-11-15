@@ -113,7 +113,8 @@ Die Erkennung läuft vollständig auf dem Handy und gleicht das Kamerabild mit v
 3. **Nummer lesen:** Die Zeile mit der Kartennummer per Texterkennung auslesen. Sie entscheidet, wenn mehrere Drucke dasselbe Motiv tragen.
 4. **Entscheiden:** Ist ein Treffer über mehrere Bilder hinweg stabil und eindeutig, geht er in die Sitzung. Sonst erscheinen die Kandidaten zur Auswahl.
 
-- **Fingerabdrücke** entstehen im täglichen Datenskript aus den Katalogbildern. Gespeichert werden nur die Fingerabdrücke, keine Bildkopien.
+- **Fingerabdrücke** entstehen im täglichen Datenskript aus den Katalogbildern. Im Repository liegen nur die Fingerabdrücke (`data/fingerprints.json`), keine Bildkopien. Für die Entwicklung der Erkennung liegen die Bilder vorübergehend auf dem Entwicklungs-PC unter `.cache/images/` (nicht im Repository); nach Abschluss von M3 werden sie gelöscht.
+- **Umrisssuche:** Zwei Verfahren (Kanten, Abweichung von der Hintergrundfarbe) schlagen Vierecke vor; es gilt das, dessen Inhalt am besten zu einem Katalogbild passt.
 - **Varianten:** Alt-Art und Overnumbered unterscheiden sich im Motiv und werden über den Fingerabdruck getrennt. Gleiches Motiv mit anderer Nummer trennt die Texterkennung.
 - **Foil** wird nicht erkannt, sondern per Schalter gesetzt.
 - **Ausweichlösung:** Reicht der Fingerabdruck nicht, ersetzt ein kleines Bildmodell im Browser (ONNX Runtime Web oder TensorFlow.js) Schritt 2. Der Rest bleibt gleich.
@@ -181,6 +182,7 @@ Die Sammlung kommt vor dem Scanner: So ist die App schon nutzbar, während die E
    - Abnahme: Zehn Stichproben stimmen mit dem Low-Wert auf der Cardmarket-Seite des Vortags überein.
 4. **M3 Erkennung.** Fingerabdrücke, Erkennungskette, automatischer Test gegen die Fotos.
    - Abnahme: Die Zielwerte aus dem Abschnitt Kartenerkennung sind auf dem Testsatz erreicht.
+   - Stand 15.11.2026: vorbereitet ohne echte Fotos. Fingerabdrücke aller 1.804 Katalogbilder liegen vor; Umrisssuche, Entzerrung und Abgleich sind gebaut und mit künstlich verzerrten Katalogbildern geprüft (`docs/m3-selbsttest.md`, `docs/m3-szenentest.md`). Offen: Test mit den Fotos des Nutzers (`npm run scan:photos`), Lesen der Kartennummer, Einbau in die App samt Geschwindigkeitsmessung auf dem Handy.
    - Abnahme: Der Test läuft bei jeder Änderung automatisch mit.
 5. **M4 Scan-Sitzung.** Fortlaufendes Scannen, Sitzungsliste, Übernahme der Auswahl.
    - Abnahme: 20 Karten nacheinander gescannt ergeben 20 Zeilen ohne Doppelzählung.

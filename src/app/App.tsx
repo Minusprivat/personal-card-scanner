@@ -1,9 +1,11 @@
+import { useState } from 'react';
 import { CardDetail } from './CardDetail';
 import { CollectionView } from './CollectionView';
 import { FilesView } from './FilesView';
 import { useAvailableUpdate, useCatalog, usePrices, useRoute, useStock } from './hooks';
 
 const APK_URL = 'https://github.com/Minusprivat/personal-card-scanner/releases/download/apk/card-scanner.apk';
+const DISMISSED_UPDATE = 'dismissedUpdate';
 
 export function App() {
   const catalog = useCatalog();
@@ -11,6 +13,12 @@ export function App() {
   const route = useRoute();
   const prices = usePrices();
   const update = useAvailableUpdate();
+  // Nicht jede neue Version bringt etwas Sichtbares; der Hinweis lässt sich je Version wegklicken.
+  const [dismissed, setDismissed] = useState(() => localStorage.getItem(DISMISSED_UPDATE));
+  const dismiss = (version: string) => {
+    localStorage.setItem(DISMISSED_UPDATE, version);
+    setDismissed(version);
+  };
 
   return (
     <div className="app">
@@ -28,13 +36,16 @@ export function App() {
         </nav>
       </header>
 
-      {update && (
+      {update && update !== dismissed && (
         <p className="notice ok">
           Version {update} ist verfügbar.{' '}
           <a className="textlink" href={APK_URL} target="_blank" rel="noopener">
             Neue APK laden
           </a>{' '}
-          und über die vorhandene App installieren; die Sammlung bleibt erhalten.
+          und über die vorhandene App installieren; die Sammlung bleibt erhalten.{' '}
+          <button type="button" className="link" onClick={() => dismiss(update)}>
+            Später
+          </button>
         </p>
       )}
 
