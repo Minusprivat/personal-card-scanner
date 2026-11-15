@@ -57,6 +57,7 @@ Die erste Version deckt drei Dinge ab: scannen, in einer Sitzung sammeln und aus
 - Die Detailseite zeigt alle Drucke einer Karte nebeneinander, jeweils mit Bestand und Preis.
 - Gesamtwert der Sammlung als Summe aus Low-Preis mal Menge.
 - Export und Import als JSON (Sicherung) und als CSV.
+- Jede Exportdatei lässt sich speichern (am PC mit Ortsauswahl, sonst als Download) oder über das Teilen-Menü des Handys weitergeben. Das Teilen-Menü nimmt keine .json-Dateien an; die Sicherung geht dort als .json.txt hinaus und lässt sich so auch wieder einspielen.
 - Export und Import im Format von Piltover Archive (CSV), nachgebaut anhand einer Exportdatei des Nutzers vom 14.11.2026.
   - Import: Zeilen derselben Fassung werden summiert. Was sich nicht zuordnen lässt, steht in einer Liste, bleibt gespeichert und geht beim Export unverändert zurück.
   - Export: Fassungen aus einem früheren Import behalten ihre Piltover-Felder. Für alle anderen sind Nummer und Bezeichnung nach den Mustern der Datei geschätzt, weil Piltover Archive seinen Katalog nicht zum automatischen Abruf freigibt.

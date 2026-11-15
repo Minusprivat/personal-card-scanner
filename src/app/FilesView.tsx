@@ -12,17 +12,22 @@ import { FINISH_LABELS } from '../data/model';
 import { exportPiltover, importPiltover, type PiltoverImport } from '../data/piltover';
 import { variantLabel } from '../data/prints';
 import { db } from './db';
+import { canShareFiles, saveFile, shareFile, type OutFile, type SaveResult } from './save';
 
-function download(name: string, text: string, type: string) {
-  const url = URL.createObjectURL(new Blob([text], { type }));
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = name;
-  document.body.append(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 10_000);
+type ExportKind = 'backup' | 'piltover' | 'csv';
+
+/** Eine fertig erzeugte Datei samt Satz für die Erfolgsmeldung. */
+interface Export extends OutFile {
+  summary: ReactNode;
 }
+
+/** Was nach dem Speichern oder Teilen tatsächlich feststeht. */
+const OUTCOME: Record<Exclude<SaveResult, 'cancelled'>, string> = {
+  picked: 'Gespeichert.',
+  shared: 'An die gewählte App übergeben.',
+  downloaded:
+    'An den Browser übergeben; die Datei liegt im Ordner „Downloads“. Kommt dort nichts an, nimm „Teilen“.',
+};
 
 const today = () => new Date().toISOString().slice(0, 10);
 const sum = (m: Map<string, number>) => [...m.values()].reduce((a, b) => a + b, 0);
@@ -41,6 +46,7 @@ interface Pending {
 export function FilesView({ index, stock }: { index: CatalogIndex; stock: Map<string, number> }) {
   const [message, setMessage] = useState<{ kind: 'ok' | 'error'; text: ReactNode } | null>(null);
   const [pending, setPending] = useState<Pending | null>(null);
+  const [share] = useState(canShareFiles);
 
   const cards = sum(stock);
   const unknown = [...stock.keys()].filter((id) => !index.skuById.has(id)).length;
@@ -66,44 +72,82 @@ export function FilesView({ index, stock }: { index: CatalogIndex; stock: Map<st
     }
   }
 
-  async function exportBackup() {
+  async function buildExport(kind: ExportKind): Promise<Export> {
     const state = await db.readCollection();
-    download(`card-scanner-sicherung-${today()}.json`, createBackup(state, index, new Date().toISOString()), 'application/json');
-    setMessage({ kind: 'ok', text: `Sicherung mit ${sum(state.stock)} Karten gespeichert.` });
-  }
-
-  function exportCsv() {
-    download(`card-scanner-sammlung-${today()}.csv`, exportCollectionCsv(stock, index), 'text/csv');
-    setMessage({ kind: 'ok', text: `Tabelle mit ${cards} Karten gespeichert.` });
-  }
-
-  async function exportPa() {
-    const state = await db.readCollection();
+    if (kind === 'backup') {
+      return {
+        name: `card-scanner-sicherung-${today()}.json`,
+        text: createBackup(state, index, new Date().toISOString()),
+        type: 'application/json',
+        summary: `Sicherung mit ${count(sum(state.stock), 'Karte', 'Karten')}.`,
+      };
+    }
+    if (kind === 'csv') {
+      return {
+        name: `card-scanner-sammlung-${today()}.csv`,
+        text: exportCollectionCsv(state.stock, index),
+        type: 'text/csv',
+        summary: `Tabelle mit ${count(sum(state.stock), 'Karte', 'Karten')}.`,
+      };
+    }
     const out = exportPiltover(state.stock, index, state.templates, state.extraRows);
-    download(`piltover-collection-card-scanner-${today()}.csv`, out.csv, 'text/csv');
-    setMessage({
-      kind: 'ok',
-      text: (
+    return {
+      name: `piltover-collection-card-scanner-${today()}.csv`,
+      text: out.csv,
+      type: 'text/csv',
+      summary: (
         <>
-          Piltover-Datei mit {out.totalQty} Karten in {out.rows} Zeilen gespeichert.
+          Piltover-Datei mit {count(out.totalQty, 'Karte', 'Karten')} in {count(out.rows, 'Zeile', 'Zeilen')}.
           {out.derived.length > 0 && (
             <>
               {' '}
-              Bei {out.derived.length} Fassungen ist die Piltover-Nummer geschätzt, weil sie nie aus Piltover Archive
-              importiert wurden.
+              Bei {count(out.derived.length, 'Fassung', 'Fassungen')} ist die Piltover-Nummer geschätzt, weil sie nie
+              aus Piltover Archive importiert wurden.
             </>
           )}
           {out.skipped.length > 0 && (
             <>
               {' '}
-              Nicht enthalten: {out.skipped.reduce((n, s) => n + s.qty, 0)} Karten, die das Format nicht kennt
-              (Metal-Fassungen).
+              Nicht enthalten: {count(out.skipped.reduce((n, x) => n + x.qty, 0), 'Karte', 'Karten')}, die das Format
+              nicht kennt (Metal-Fassungen).
             </>
           )}
         </>
       ),
-    });
+    };
   }
+
+  async function run(kind: ExportKind, how: 'save' | 'share') {
+    try {
+      const file = await buildExport(kind);
+      const result = how === 'share' ? await shareFile(file) : await saveFile(file);
+      if (result === 'cancelled') return;
+      setMessage({
+        kind: 'ok',
+        text: (
+          <>
+            {file.summary} {OUTCOME[result]}
+          </>
+        ),
+      });
+    } catch (err) {
+      fail(err);
+    }
+  }
+
+  /** „Speichern“ und, wo das Gerät es kann, „Teilen“ für eine Exportart. */
+  const exportButtons = (kind: ExportKind, label: string, primary = false) => (
+    <>
+      <button type="button" className={primary ? 'primary' : undefined} onClick={() => void run(kind, 'save')}>
+        {label}
+      </button>
+      {share && (
+        <button type="button" onClick={() => void run(kind, 'share')}>
+          Teilen
+        </button>
+      )}
+    </>
+  );
 
   function loadBackup(text: string) {
     const state = parseBackup(text);
@@ -161,6 +205,7 @@ export function FilesView({ index, stock }: { index: CatalogIndex; stock: Map<st
           {stock.size === 1 ? '1 Fassung' : `${stock.size} Fassungen`}.
           {unknown > 0 && <> {unknown} Fassungen stehen nicht mehr im Katalog.</>} Lege regelmäßig eine Sicherung an. Mit
           der Sicherungsdatei überträgst du die Sammlung auch zwischen Handy und PC.
+          {share && ' „Teilen“ schickt die Datei an eine App deiner Wahl, zum Beispiel Google Drive oder E-Mail.'}
         </p>
       </section>
 
@@ -198,10 +243,8 @@ export function FilesView({ index, stock }: { index: CatalogIndex; stock: Map<st
         <h2>Sicherungsdatei (JSON)</h2>
         <p>Vollständige Sicherung dieser App. Stellt den Bestand genau wieder her.</p>
         <div className="buttons">
-          <button type="button" className="primary" onClick={() => void exportBackup().catch(fail)}>
-            Sicherung speichern
-          </button>
-          <FileButton accept=".json,application/json" onText={loadBackup} onError={fail}>
+          {exportButtons('backup', 'Sicherung speichern', true)}
+          <FileButton accept=".json,.txt,application/json,text/plain" onText={loadBackup} onError={fail}>
             Sicherung einspielen
           </FileButton>
         </div>
@@ -217,9 +260,7 @@ export function FilesView({ index, stock }: { index: CatalogIndex; stock: Map<st
           <FileButton accept=".csv,text/csv" onText={loadPiltover} onError={fail}>
             Piltover-Datei einlesen
           </FileButton>
-          <button type="button" onClick={() => void exportPa().catch(fail)}>
-            Für Piltover Archive speichern
-          </button>
+          {exportButtons('piltover', 'Für Piltover Archive speichern')}
         </div>
       </section>
 
@@ -227,9 +268,7 @@ export function FilesView({ index, stock }: { index: CatalogIndex; stock: Map<st
         <h2>Tabelle (CSV)</h2>
         <p>Für Excel oder Google Tabellen: Nummer, Name, Set, Variante, Finish, Menge.</p>
         <div className="buttons">
-          <button type="button" onClick={exportCsv}>
-            Tabelle speichern
-          </button>
+          {exportButtons('csv', 'Tabelle speichern')}
           <FileButton accept=".csv,text/csv" onText={loadCsv} onError={fail}>
             Tabelle einlesen
           </FileButton>
