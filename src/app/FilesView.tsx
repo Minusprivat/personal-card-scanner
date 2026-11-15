@@ -12,7 +12,7 @@ import { FINISH_LABELS } from '../data/model';
 import { exportPiltover, importPiltover, type PiltoverImport } from '../data/piltover';
 import { variantLabel } from '../data/prints';
 import { db } from './db';
-import { canShareFiles, saveFile, shareFile, type OutFile, type SaveResult } from './save';
+import { canShareFiles, NATIVE_FOLDER, saveFile, shareFile, type OutFile, type SaveResult } from './save';
 
 type ExportKind = 'backup' | 'piltover' | 'csv';
 
@@ -24,6 +24,7 @@ interface Export extends OutFile {
 /** Was nach dem Speichern oder Teilen tatsächlich feststeht. */
 const OUTCOME: Record<Exclude<SaveResult, 'cancelled'>, string> = {
   picked: 'Gespeichert.',
+  documents: `Gespeichert im Ordner „Dokumente/${NATIVE_FOLDER}“.`,
   shared: 'An die gewählte App übergeben.',
   downloaded:
     'An den Browser übergeben; die Datei liegt im Ordner „Downloads“. Kommt dort nichts an, nimm „Teilen“.',

@@ -1,7 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { buildIndex, type CatalogIndex } from '../data/catalog-index';
-import type { Catalog } from '../data/model';
+import { loadCatalog } from './catalog-loader';
 import { db } from './db';
 
 export type CatalogState =
@@ -9,16 +9,12 @@ export type CatalogState =
   | { status: 'error'; message: string }
   | { status: 'ready'; index: CatalogIndex };
 
-/** Lädt die Tagesdaten. Ohne Netz liefert der Service Worker den letzten Stand. */
+/** Lädt die Tagesdaten; Einzelheiten zu Web-App und Android-App stehen in catalog-loader.ts. */
 export function useCatalog(): CatalogState {
   const [state, setState] = useState<CatalogState>({ status: 'loading' });
   useEffect(() => {
     let cancelled = false;
-    fetch(`${import.meta.env.BASE_URL}data/catalog.json`)
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json() as Promise<Catalog>;
-      })
+    loadCatalog()
       .then((catalog) => {
         if (!cancelled) setState({ status: 'ready', index: buildIndex(catalog) });
       })

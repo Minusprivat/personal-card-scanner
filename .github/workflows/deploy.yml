@@ -1,6 +1,7 @@
 name: App veröffentlichen
 
-# Baut die App samt Tagesdaten und legt sie auf GitHub Pages ab.
+# Baut die App samt Tagesdaten, legt die Web-App auf GitHub Pages ab
+# und stellt die Android-App (APK) als Download bereit.
 on:
   push:
     branches: [main]
@@ -28,7 +29,13 @@ jobs:
       - name: Katalog laden
         run: npm run data:build
       - run: npm test
-      - name: App bauen
+      # Die Android-App nutzt denselben Katalog, damit die Quelle nur einmal abgerufen wird.
+      - uses: actions/upload-artifact@v7
+        with:
+          name: tagesdaten
+          path: public/data
+          retention-days: 1
+      - name: Web-App bauen
         run: npm run build
         env:
           BASE_PATH: /personal-card-scanner/
@@ -45,3 +52,47 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v5
+
+  apk:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm ci
+      - uses: actions/download-artifact@v8
+        with:
+          name: tagesdaten
+          path: public/data
+      - name: Web-Teil bauen
+        run: npm run build
+      - name: In das Android-Projekt übernehmen
+        run: npx cap sync android
+      - name: APK bauen
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon \
+            -PappVersionCode=${{ github.run_number }} \
+            -PappVersionName=0.1.${{ github.run_number }}
+      - name: APK als Download bereitstellen
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk card-scanner.apk
+          notes="Version 0.1.${{ github.run_number }} vom $(date -u +%d.%m.%Y). Die Datei card-scanner.apk auf dem Handy öffnen, um die App zu installieren oder zu aktualisieren."
+          if gh release view apk >/dev/null 2>&1; then
+            gh release upload apk card-scanner.apk --clobber
+            gh release edit apk --notes "$notes"
+          else
+            gh release create apk card-scanner.apk --title "Card Scanner für Android" --notes "$notes"
+          fi

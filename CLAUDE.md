@@ -1,6 +1,6 @@
 # Personal Card Scanner via Claude
 
-Private Riftbound-Sammlungs-App als PWA für Android. Maßgeblich ist [SPEC.md](SPEC.md); die Meilensteine werden der Reihe nach abgearbeitet. Oberfläche und alle Texte der App sind auf Deutsch.
+Private Riftbound-Sammlungs-App als PWA für Android und PC, zusätzlich als Android-APK (Capacitor). Maßgeblich ist [SPEC.md](SPEC.md); die Meilensteine werden der Reihe nach abgearbeitet. Oberfläche und alle Texte der App sind auf Deutsch.
 
 ## Stand
 
@@ -8,7 +8,7 @@ Private Riftbound-Sammlungs-App als PWA für Android. Maßgeblich ist [SPEC.md](
 - **M1 Gerüst und Sammlung:** gebaut; wartet auf die Prüfung durch den Nutzer (Handy, Import bei Piltover Archive).
 - **M2 Preise:** offen.
 
-Repository: https://github.com/Minusprivat/personal-card-scanner · App: https://minusprivat.github.io/personal-card-scanner/
+Repository: https://github.com/Minusprivat/personal-card-scanner · Web-App: https://minusprivat.github.io/personal-card-scanner/ · APK: https://github.com/Minusprivat/personal-card-scanner/releases/download/apk/card-scanner.apk
 
 ## Befehle
 
@@ -24,7 +24,9 @@ Repository: https://github.com/Minusprivat/personal-card-scanner · App: https:/
 | Beides ohne Netz, aus `.cache/` | `npm run data:report:offline`, `npm run data:build:offline` |
 | App-Symbole neu erzeugen | `npm run icons` |
 
-Deploy: Jeder Push auf `main` startet `.github/workflows/deploy.yml` (Katalog laden, testen, bauen, GitHub Pages). Die tägliche Aktualisierung folgt mit M2.
+Deploy: Jeder Push auf `main` startet `.github/workflows/deploy.yml`: Katalog laden, testen, Web-App auf GitHub Pages, APK bauen und im Release `apk` ersetzen. Die tägliche Aktualisierung folgt mit M2.
+
+Die APK lässt sich lokal nicht bauen (kein Android SDK, nur Java 8 auf dem PC). `npx cap sync android` läuft lokal; den Gradle-Bau macht nur GitHub Actions. Nach Änderungen an `android/` deshalb den Workflow-Lauf abwarten und prüfen.
 
 Commits in diesem Repository nutzen die GitHub-noreply-Adresse (lokale Git-Einstellung), weil das Repository öffentlich ist.
 
@@ -37,6 +39,9 @@ Commits in diesem Repository nutzen die GitHub-noreply-Adresse (lokale Git-Einst
   - `catalog-index.ts`, `filter.ts`: Nachschlagetabellen, Suche und Filter.
   - `csv.ts`, `backup.ts`, `piltover.ts`: Sicherung (JSON), Tabelle (CSV), Piltover-Archive-Format.
 - `src/app/` – React-Oberfläche. `db.ts` hält den Bestand in IndexedDB (Dexie).
+  - `save.ts`: Speichern und Teilen je Umgebung (Android-App, PC-Browser, Handy-Browser).
+  - `catalog-loader.ts`: lädt den Katalog; die Android-App holt ihn von GitHub Pages und merkt ihn sich.
+- `android/` – Capacitor-Projekt. `app/debug.p12` ist der feste, bewusst öffentliche Signaturschlüssel; nicht ersetzen, sonst lassen sich Updates nur nach Deinstallation (Datenverlust) einspielen.
 - `scripts/build-data/` – Node-Datenskript.
   - `sources/openrift.ts`: einzige Stelle, die das OpenRift-Format kennt.
   - `sources/cardmarket.ts`: Cardmarket-Preisdatei.
@@ -54,5 +59,6 @@ Commits in diesem Repository nutzen die GitHub-noreply-Adresse (lokale Git-Einst
 - Piltover Archive nicht automatisch abrufen (Nutzungsbedingungen untersagen Scraping); das Format stammt allein aus den Dateien des Nutzers.
 - Preise kommen nur aus der Cardmarket-Preisdatei, nicht aus OpenRifts `/api/v1/prices` (enthält Platzhalter).
 - Bestand und Preis hängen an der Sku. Es gibt vier Finishes: Normal, Foil, Metal, Metal Deluxe. Metal hat keinen Cardmarket-Preis.
+- Web-App und APK müssen beide funktionieren: Plattform-Unterschiede gehören hinter `isNativeApp()` in `save.ts` oder `catalog-loader.ts`.
 - Stimmt eine Annahme der SPEC nicht: anhalten, Abweichung mit Vorschlag nennen, dann weiterbauen.
 - Jeder Meilenstein endet mit Tests für die Abnahmekriterien und einer Prüfanleitung fürs Handy; danach auf Freigabe warten.

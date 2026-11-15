@@ -10,6 +10,7 @@ Eine private Web-App für ein Android-Handy erkennt Riftbound-Karten per Kamera,
 - **Umsetzung:** Claude Code (Opus) in einem eigenen GitHub-Repository.
 - **Betrieb:** GitHub Pages liefert die App, GitHub Actions aktualisiert einmal täglich Katalog und Preise.
 - **Nicht enthalten:** Deckbau, Spielsimulation, Kaufen und Verkaufen, Abgleich zwischen mehreren Geräten, Veröffentlichung im Play Store.
+- **Android-App (seit 15.11.2026):** Zusätzlich zur Web-App gibt es dieselbe App als APK zum direkten Installieren, gebaut mit Capacitor von GitHub Actions. Download: https://github.com/Minusprivat/personal-card-scanner/releases/download/apk/card-scanner.apk
 
 ## Festgelegte Entscheidungen
 
@@ -23,6 +24,7 @@ Eine private Web-App für ein Android-Handy erkennt Riftbound-Karten per Kamera,
 | Piltover Archive | Import und Export im Format von Piltover Archive, zum Übernehmen der bestehenden Sammlung und als Sicherung dort |
 | Varianten | Alt-Art, Overnumbered, Special Collection und Promos sind eigene Drucke mit eigenem Bestand und eigenem Preis |
 | Nutzung | Zunächst privat, keine Weitergabe |
+| Android-App | APK aus demselben Code. Speichert Dateien direkt unter „Dokumente/CardScanner“. Updates installiert der Nutzer von Hand über die neue APK. Web-App und APK führen getrennte Bestände; der Umzug läuft über die Sicherungsdatei. Alle Builds tragen dieselbe, öffentlich im Repository liegende Signatur, damit Updates die Sammlung behalten. |
 | Speicherung | Lokal je Gerät, Sicherung als Datei. Handy und PC führen getrennte Bestände; die Sicherungsdatei überträgt die Sammlung von einem Gerät aufs andere. |
 | Hosting | GitHub Pages, Repository https://github.com/Minusprivat/personal-card-scanner (öffentlich), App unter https://minusprivat.github.io/personal-card-scanner/ |
 | Testmaterial | Fotos echter Karten liefert der Nutzer |

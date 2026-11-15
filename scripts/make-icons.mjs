@@ -1,6 +1,6 @@
 // Erzeugt die App-Symbole als PNG, ohne zusätzliche Abhängigkeiten.
 // Aufruf: node scripts/make-icons.mjs
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { deflateSync } from 'node:zlib';
@@ -59,9 +59,13 @@ const inRound = (x, y, cx, cy, hw, hh, r) => {
   return dx * dx + dy * dy <= r * r;
 };
 
-/** scale < 1 verkleinert das Motiv für „maskable“, damit nichts abgeschnitten wird. */
-const icon = (scale, roundedBackground) => (x, y) => {
-  if (roundedBackground && !inRound(x, y, 0.5, 0.5, 0.5, 0.5, 0.2)) return CLEAR;
+/**
+ * scale < 1 verkleinert das Motiv für „maskable“, damit nichts abgeschnitten wird.
+ * shape: 'rounded' und 'circle' schneiden den Hintergrund zu, 'none' lässt ihn durchsichtig.
+ */
+const icon = (scale, shape) => (x, y) => {
+  if (shape === 'rounded' && !inRound(x, y, 0.5, 0.5, 0.5, 0.5, 0.2)) return CLEAR;
+  if (shape === 'circle' && (x - 0.5) ** 2 + (y - 0.5) ** 2 > 0.25) return CLEAR;
   const u = (x - 0.5) / scale + 0.5;
   const v = (y - 0.5) / scale + 0.5;
   if (Math.abs(v - 0.5) < 0.022 && Math.abs(u - 0.5) < 0.4) return SCAN;
@@ -69,12 +73,25 @@ const icon = (scale, roundedBackground) => (x, y) => {
     if (inRound(u, v, 0.5, 0.42, 0.18, 0.19, 0.025)) return ART;
     return CARD;
   }
-  return BG;
+  return shape === 'none' ? CLEAR : BG;
 };
 
 mkdirSync(out, { recursive: true });
-writeFileSync(path.join(out, 'icon-192.png'), png(192, icon(1, true)));
-writeFileSync(path.join(out, 'icon-512.png'), png(512, icon(1, true)));
-writeFileSync(path.join(out, 'maskable-512.png'), png(512, icon(0.72, false)));
-writeFileSync(path.join(out, 'apple-touch-icon.png'), png(180, icon(0.9, false)));
+writeFileSync(path.join(out, 'icon-192.png'), png(192, icon(1, 'rounded')));
+writeFileSync(path.join(out, 'icon-512.png'), png(512, icon(1, 'rounded')));
+writeFileSync(path.join(out, 'maskable-512.png'), png(512, icon(0.72, 'square')));
+writeFileSync(path.join(out, 'apple-touch-icon.png'), png(180, icon(0.9, 'square')));
 console.log('Symbole geschrieben nach', out);
+
+// Android-App: klassische Symbole je Bildschirmdichte und der Vordergrund des adaptiven Symbols.
+const res = path.resolve(out, '../../android/app/src/main/res');
+if (existsSync(res)) {
+  for (const [density, factor] of Object.entries({ mdpi: 1, hdpi: 1.5, xhdpi: 2, xxhdpi: 3, xxxhdpi: 4 })) {
+    const dir = path.join(res, `mipmap-${density}`);
+    writeFileSync(path.join(dir, 'ic_launcher.png'), png(48 * factor, icon(1, 'rounded')));
+    writeFileSync(path.join(dir, 'ic_launcher_round.png'), png(48 * factor, icon(0.8, 'circle')));
+    // Vom 108-dp-Vordergrund bleibt nur die Mitte sicher sichtbar, daher das kleine Motiv.
+    writeFileSync(path.join(dir, 'ic_launcher_foreground.png'), png(108 * factor, icon(0.58, 'none')));
+  }
+  console.log('Android-Symbole geschrieben nach', res);
+}
