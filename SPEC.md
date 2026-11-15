@@ -24,7 +24,7 @@ Eine private Web-App für ein Android-Handy erkennt Riftbound-Karten per Kamera,
 | Piltover Archive | Import und Export im Format von Piltover Archive, zum Übernehmen der bestehenden Sammlung und als Sicherung dort |
 | Varianten | Alt-Art, Overnumbered, Special Collection und Promos sind eigene Drucke mit eigenem Bestand und eigenem Preis |
 | Nutzung | Zunächst privat, keine Weitergabe |
-| Android-App | APK aus demselben Code. Speichert Dateien direkt unter „Dokumente/CardScanner“. Updates installiert der Nutzer von Hand über die neue APK. Web-App und APK führen getrennte Bestände; der Umzug läuft über die Sicherungsdatei. Alle Builds tragen dieselbe, öffentlich im Repository liegende Signatur, damit Updates die Sammlung behalten. |
+| Android-App | APK aus demselben Code. Speichert Dateien direkt unter „Dokumente/CardScanner“. Seit Version 0.1.11 aktualisiert sie sich selbst: Beim Start prüft sie die Versionsdatei auf GitHub Pages, lädt den neuen Web-Teil im Hintergrund und nutzt ihn ab dem nächsten Öffnen (oder sofort über „Jetzt neu starten“). Nur wenn sich die Android-Hülle geändert hat (Berechtigungen, Bausteine), installiert der Nutzer von Hand eine neue APK; die App sagt das dann. Web-App und APK führen getrennte Bestände; der Umzug läuft über die Sicherungsdatei. Alle Builds tragen dieselbe, öffentlich im Repository liegende Signatur, damit Updates die Sammlung behalten. |
 | Speicherung | Lokal je Gerät, Sicherung als Datei. Handy und PC führen getrennte Bestände; die Sicherungsdatei überträgt die Sammlung von einem Gerät aufs andere. |
 | Hosting | GitHub Pages, Repository https://github.com/Minusprivat/personal-card-scanner (öffentlich), App unter https://minusprivat.github.io/personal-card-scanner/ |
 | Testmaterial | Fotos echter Karten liefert der Nutzer |
@@ -149,7 +149,7 @@ Angezeigt wird Cardmarket Low je Druck und Finish mit Stand-Datum. Einen Low-Pre
 - **Nicht vorgesehen:** automatisches Auslesen der Cardmarket-Angebotsseiten. Sie sind gegen automatische Zugriffe gesperrt.
 - **Prüfregeln:** Fehlt ein Preis, steht „kein Preis“ statt 0 €. Offensichtliche Platzhalterangebote ohne Verkäufe fließen nicht in den Sammlungswert ein.
 - **Sammlungswert** rechnet mit Stufe 1 und nennt das Stand-Datum der Preisdatei. Karten ohne Preis (auch alle Metal-Fassungen) und Angebote ohne belegten Verkauf zählen nicht mit; die App nennt ihre Anzahl.
-- **Android-App:** holt Preise und Katalog beim Start von GitHub Pages und merkt sie sich. Neue Daten gelten ab dem nächsten Start. Für neue Funktionen zeigt sie einen Hinweis mit Link zur neuen APK.
+- **Android-App:** holt Preise und Katalog beim Start von GitHub Pages und merkt sie sich. Neue Daten gelten ab dem nächsten Start. Neue Versionen der App lädt sie ebenfalls selbst nach; nur für Änderungen an der Android-Hülle zeigt sie einen Hinweis mit Link zur neuen APK.
 - **Aktualität:** einmal täglich. Ein Live-Preis ist nur über den Knopf aus Stufe 2 sichtbar.
 
 ## Architektur und Tech-Stack

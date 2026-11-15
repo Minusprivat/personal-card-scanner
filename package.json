@@ -48,6 +48,7 @@
     "@capacitor/core": "^8.6.2",
     "@capacitor/filesystem": "^8.1.5",
     "@capacitor/share": "^8.0.3",
+    "@capgo/capacitor-updater": "^8.54.2",
     "dexie": "^4.4.7",
     "dexie-react-hooks": "^4.4.0",
     "react": "^19.3.1",

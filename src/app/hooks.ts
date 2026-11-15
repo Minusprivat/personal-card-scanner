@@ -2,8 +2,8 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { buildIndex, type CatalogIndex } from '../data/catalog-index';
 import type { PriceData } from '../data/prices';
-import { loadCatalog, loadPrices, loadPublishedVersion } from './catalog-loader';
-import { isNativeApp } from './save';
+import { loadCatalog, loadPrices } from './catalog-loader';
+import { checkForUpdate, markAppReady, type AppUpdate } from './updater';
 import { db, type SessionRow } from './db';
 
 export type CatalogState =
@@ -50,19 +50,20 @@ export function usePrices(): PriceData | null {
 /** Version dieser App, beim Bau gesetzt; lokal "dev". */
 export const APP_VERSION: string = import.meta.env.VITE_APP_VERSION ?? 'dev';
 
-const buildNumber = (version: string) => Number.parseInt(version.split('.').pop() ?? '', 10);
+const NO_UPDATE: AppUpdate = { kind: 'none' };
 
 /**
- * Die Android-App aktualisiert sich nicht selbst. Liefert die neuere veröffentlichte
- * Version, sobald es eine gibt; in der Web-App und lokal immer null.
+ * Selbst-Update der Android-App (siehe updater.ts): prüft beim Start einmal auf eine neue
+ * Version und lädt sie im Hintergrund. In der Web-App und lokal bleibt es bei „nichts zu tun“.
  */
-export function useAvailableUpdate(): string | null {
-  const [update, setUpdate] = useState<string | null>(null);
+export function useAppUpdate(): AppUpdate {
+  const [update, setUpdate] = useState<AppUpdate>(NO_UPDATE);
   useEffect(() => {
-    if (!isNativeApp() || APP_VERSION === 'dev') return;
+    // Die Oberfläche steht: Ein gerade eingespieltes Update gilt damit als gelungen.
+    markAppReady();
     let cancelled = false;
-    void loadPublishedVersion().then((published) => {
-      if (!cancelled && published && buildNumber(published) > buildNumber(APP_VERSION)) setUpdate(published);
+    void checkForUpdate(APP_VERSION).then((result) => {
+      if (!cancelled) setUpdate(result);
     });
     return () => {
       cancelled = true;

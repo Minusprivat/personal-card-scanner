@@ -48,18 +48,34 @@ jobs:
           restore-keys: fingerprints-v1-
       - name: Fingerabdrücke für neue Kartenbilder
         run: npm run data:fingerprints
-      - name: Versionsdatei für den Update-Hinweis der Android-App
-        run: echo "{\"version\":\"$APP_VERSION\"}" > public/data/version.json
+      # "apk" nennt die älteste APK, mit der diese Version läuft: den letzten Stand, an dem sich
+      # die Android-Hülle geändert hat. Ältere APKs bekommen den Hinweis, eine neue zu laden;
+      # alle anderen laden nur den Web-Teil nach (src/app/updater.ts).
+      - name: Versionsdatei für das Selbst-Update der Android-App
+        run: |
+          huelle=$(git rev-list --count "$(git log -1 --format=%H -- android capacitor.config.ts package.json)")
+          echo "{\"version\":\"$APP_VERSION\",\"apk\":$huelle}" > public/data/version.json
+          cat public/data/version.json
       # Die Android-App nutzt dieselben Daten, damit die Quellen nur einmal abgerufen werden.
       - uses: actions/upload-artifact@v7
         with:
           name: tagesdaten
           path: public/data
           retention-days: 1
+      # Derselbe Web-Teil wie in der APK (ohne Unterpfad), als Paket zum Nachladen.
+      - name: Update-Paket für die Android-App bauen
+        run: |
+          npm run build
+          (cd dist && zip -q -r "../app-$APP_VERSION.zip" .)
+          ls -l "app-$APP_VERSION.zip"
       - name: Web-App bauen
         run: npm run build
         env:
           BASE_PATH: /personal-card-scanner/
+      - name: Update-Paket zur Web-App legen
+        run: |
+          mkdir -p dist/bundle
+          mv "app-$APP_VERSION.zip" dist/bundle/
       - uses: actions/upload-pages-artifact@v5
         with:
           path: dist

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { CardDetail } from './CardDetail';
 import { CollectionView } from './CollectionView';
 import { FilesView } from './FilesView';
-import { useAvailableUpdate, useCatalog, usePrices, useRoute, useSession, useStock } from './hooks';
+import { useAppUpdate, useCatalog, usePrices, useRoute, useSession, useStock } from './hooks';
 import { ScanView } from './scan/ScanView';
 
 const APK_URL = 'https://github.com/Minusprivat/personal-card-scanner/releases/download/apk/card-scanner.apk';
@@ -15,8 +15,8 @@ export function App() {
   const prices = usePrices();
   const session = useSession();
   const sessionQty = session.reduce((n, r) => n + r.qty, 0);
-  const update = useAvailableUpdate();
-  // Nicht jede neue Version bringt etwas Sichtbares; der Hinweis lässt sich je Version wegklicken.
+  const update = useAppUpdate();
+  // Der Hinweis auf eine neue APK lässt sich je Version wegklicken.
   const [dismissed, setDismissed] = useState(() => localStorage.getItem(DISMISSED_UPDATE));
   const dismiss = (version: string) => {
     localStorage.setItem(DISMISSED_UPDATE, version);
@@ -42,14 +42,22 @@ export function App() {
         </nav>
       </header>
 
-      {update && update !== dismissed && (
+      {update.kind === 'ready' && (
         <p className="notice ok">
-          Version {update} ist verfügbar.{' '}
+          Version {update.version} ist geladen und wird beim nächsten Öffnen der App aktiv.{' '}
+          <button type="button" className="link" onClick={update.apply}>
+            Jetzt neu starten
+          </button>
+        </p>
+      )}
+      {update.kind === 'apk' && update.version !== dismissed && (
+        <p className="notice ok">
+          Version {update.version} lässt sich nicht von selbst einspielen.{' '}
           <a className="textlink" href={APK_URL} target="_blank" rel="noopener">
             Neue APK laden
           </a>{' '}
           und über die vorhandene App installieren; die Sammlung bleibt erhalten.{' '}
-          <button type="button" className="link" onClick={() => dismiss(update)}>
+          <button type="button" className="link" onClick={() => dismiss(update.version)}>
             Später
           </button>
         </p>

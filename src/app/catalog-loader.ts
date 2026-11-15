@@ -62,13 +62,3 @@ export const loadFingerprintFile = (): Promise<FingerprintFile> =>
     'fingerprints.json',
     (f) => typeof f?.version === 'number' && typeof f.items === 'object' && f.items !== null,
   );
-
-/** Versionsnummer der zuletzt veröffentlichten App, z. B. "0.1.7". Nur für den Update-Hinweis der Android-App. */
-export async function loadPublishedVersion(): Promise<string | null> {
-  try {
-    const v = await fetchJson<{ version?: string }>(`${REMOTE_DATA}version.json`, (x) => typeof x?.version === 'string');
-    return v.version ?? null;
-  } catch {
-    return null;
-  }
-}

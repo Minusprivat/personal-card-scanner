@@ -37,7 +37,9 @@ Repository: https://github.com/Minusprivat/personal-card-scanner · Web-App: htt
 
 Deploy: Jeder Push auf `main` startet `.github/workflows/deploy.yml`: testen, Katalog und Preise laden, Web-App auf GitHub Pages, APK bauen und im Release `apk` ersetzen. Derselbe Workflow läuft täglich um 04:30 UTC und aktualisiert nur die Daten (keine neue APK). GitHub schaltet geplante Läufe ab, wenn 60 Tage lang nichts ins Repository kommt; dann unter Actions wieder einschalten.
 
-Version: `0.1.<Zahl der Commits>`. Sie steht in der App unter „Sicherung“, in `data/version.json` und als `versionCode` der APK. Die Android-App vergleicht sie und zeigt einen Update-Hinweis.
+Version: `0.1.<Zahl der Commits>`. Sie steht in der App unter „Sicherung“, in `data/version.json` und als `versionCode` der APK. `data/version.json` nennt außerdem unter `apk` die älteste APK, mit der die Version läuft (letzter Commit, der `android/`, `capacitor.config.ts` oder `package.json` berührt hat).
+
+Selbst-Update der Android-App: Beim Start vergleicht sie die Versionsdatei, lädt `bundle/app-<Version>.zip` von GitHub Pages (derselbe Web-Teil wie in der APK) und nutzt ihn ab dem nächsten Öffnen. Ist die installierte APK älter als `apk`, zeigt sie stattdessen den Hinweis auf die neue APK. Startet ein nachgeladenes Paket nicht, nimmt der Baustein es nach zehn Sekunden von selbst zurück.
 
 Die APK lässt sich lokal nicht bauen (kein Android SDK, nur Java 8 auf dem PC). `npx cap sync android` läuft lokal; den Gradle-Bau macht nur GitHub Actions. Nach Änderungen an `android/` deshalb den Workflow-Lauf abwarten und prüfen.
 
@@ -67,7 +69,8 @@ Commits in diesem Repository nutzen die GitHub-noreply-Adresse (lokale Git-Einst
 - `data/fingerprints.json` – Fingerabdrücke aller Katalogbilder. Liegt im Repository, damit der tägliche Lauf nur neue Bilder abruft; nach `npm run data:fingerprints` mit einchecken.
 - `src/app/` – React-Oberfläche. `db.ts` hält den Bestand in IndexedDB (Dexie).
   - `save.ts`: Speichern und Teilen je Umgebung (Android-App, PC-Browser, Handy-Browser).
-  - `catalog-loader.ts`: lädt Katalog, Preise und Versionsdatei; die Android-App holt sie von GitHub Pages und merkt sie sich.
+  - `catalog-loader.ts`: lädt Katalog, Preise und Fingerabdrücke; die Android-App holt sie von GitHub Pages und merkt sie sich.
+  - `updater.ts`: Selbst-Update der Android-App mit `@capgo/capacitor-updater` im Handbetrieb; die Entscheidung (nichts, Web-Teil nachladen, neue APK nötig) steht in `src/data/update.ts`.
 - `android/` – Capacitor-Projekt. `app/debug.p12` ist der feste, bewusst öffentliche Signaturschlüssel; nicht ersetzen, sonst lassen sich Updates nur nach Deinstallation (Datenverlust) einspielen.
 - `scripts/build-data/` – Node-Datenskript.
   - `sources/openrift.ts`: einzige Stelle, die das OpenRift-Format kennt.
@@ -93,6 +96,8 @@ Commits in diesem Repository nutzen die GitHub-noreply-Adresse (lokale Git-Einst
 - Bestand und Preis hängen an der Sku. Es gibt vier Finishes: Normal, Foil, Metal, Metal Deluxe. Metal hat keinen Cardmarket-Preis.
 - Keine `.gz`-Dateien unter `public/`: Der Android-Bau packt sie aus und benennt sie um, die App findet sie in der APK dann nicht (so fiel das Nummernlesen bis Version 0.1.9 in der APK aus). Der Workflow prüft nach dem Bau, dass jede Datei aus `dist/` unverändert in der APK liegt.
 - Der Scanner wartet nie unbegrenzt auf die Texterkennung; ein sicherer Bildtreffer zählt auch ohne gelesene Nummer.
+- Der Update-Baustein bleibt im Handbetrieb (`autoUpdate: false`, `statsUrl: ''` in `capacitor.config.ts`): Er darf nur GitHub Pages ansprechen, nie die Server seines Herstellers.
+- Änderungen an `android/`, `capacitor.config.ts` oder `package.json` verlangen vom Nutzer eine neue APK von Hand. Solche Änderungen deshalb sammeln und im Abschlussbericht ausdrücklich nennen.
 - Web-App und APK müssen beide funktionieren: Plattform-Unterschiede gehören hinter `isNativeApp()` in `save.ts` oder `catalog-loader.ts`.
 - Stimmt eine Annahme der SPEC nicht: anhalten, Abweichung mit Vorschlag nennen, dann weiterbauen.
 - Jeder Meilenstein endet mit Tests für die Abnahmekriterien und einer Prüfanleitung fürs Handy; danach auf Freigabe warten.
