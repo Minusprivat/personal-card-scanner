@@ -37,6 +37,16 @@ export function markAppReady(): void {
     .catch(() => undefined);
 }
 
+/** Version der installierten APK (der Hülle); null in der Web-App oder wenn sie sich nicht ermitteln lässt. */
+export async function installedApkVersion(): Promise<string | null> {
+  if (!isNativeApp()) return null;
+  try {
+    return (await (await plugin()).current()).native || null;
+  } catch {
+    return null;
+  }
+}
+
 function readTries(version: string): number {
   try {
     const saved = JSON.parse(localStorage.getItem(TRIES_KEY) ?? 'null') as { version?: string; tries?: number } | null;

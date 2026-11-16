@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { buildIndex, type CatalogIndex } from '../data/catalog-index';
 import type { PriceData } from '../data/prices';
 import { loadCatalog, loadPrices } from './catalog-loader';
-import { checkForUpdate, markAppReady, type AppUpdate } from './updater';
+import { checkForUpdate, installedApkVersion, markAppReady, type AppUpdate } from './updater';
 import { db, type SessionRow } from './db';
 
 export type CatalogState =
@@ -70,6 +70,24 @@ export function useAppUpdate(): AppUpdate {
     };
   }, []);
   return update;
+}
+
+/**
+ * Version der installierten APK. Weicht sie von APP_VERSION ab, hat sich die App
+ * seit der Installation selbst aktualisiert. In der Web-App immer null.
+ */
+export function useApkVersion(): string | null {
+  const [version, setVersion] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    void installedApkVersion().then((v) => {
+      if (!cancelled) setVersion(v);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  return version;
 }
 
 const EMPTY = new Map<string, number>();

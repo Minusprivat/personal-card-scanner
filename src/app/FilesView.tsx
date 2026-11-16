@@ -12,7 +12,7 @@ import { FINISH_LABELS } from '../data/model';
 import { exportPiltover, importPiltover, type PiltoverImport } from '../data/piltover';
 import { variantLabel } from '../data/prints';
 import { db } from './db';
-import { APP_VERSION } from './hooks';
+import { APP_VERSION, useApkVersion } from './hooks';
 import {
   canShareFiles,
   isNativeApp,
@@ -57,6 +57,7 @@ export function FilesView({ index, stock }: { index: CatalogIndex; stock: Map<st
   const [message, setMessage] = useState<{ kind: 'ok' | 'error'; text: ReactNode } | null>(null);
   const [pending, setPending] = useState<Pending | null>(null);
   const [share] = useState(canShareFiles);
+  const apkVersion = useApkVersion();
 
   const cards = sum(stock);
   const unknown = [...stock.keys()].filter((id) => !index.skuById.has(id)).length;
@@ -287,6 +288,7 @@ export function FilesView({ index, stock }: { index: CatalogIndex; stock: Map<st
 
       <p className="version">
         Version {APP_VERSION} · {isNativeApp() ? 'Android-App' : 'Web-App'}
+        {apkVersion && apkVersion !== APP_VERSION && <> · von selbst aktualisiert (installiert: {apkVersion})</>}
       </p>
     </div>
   );
