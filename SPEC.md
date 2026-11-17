@@ -57,6 +57,11 @@ Die erste Version deckt drei Dinge ab: scannen, in einer Sitzung sammeln und aus
 - Die zuletzt gescannte Karte und jede Zeile der Sitzung tragen einen Link „Auf Cardmarket (EN) öffnen“: Produktseite mit Sprachfilter Englisch, bei Foil zusätzlich mit Foil-Filter.
 - **Warnung ab 4 Karten:** Sind von einer Fassung schon 4 Karten vorhanden (Sammlung plus laufende Sitzung), warnt der Scanner beim nächsten Scan dieser Fassung deutlich, zählt die Karte aber trotzdem; „Rückgängig“ nimmt sie wieder heraus. Gezählt wird je Druck: Normal und Foil zusammen, Promo- und Alt-Art-Fassungen jeweils für sich. In der Sitzungsliste sind betroffene Zeilen markiert.
 
+### Preise für neue Sonderausgaben
+
+- Die Katalogquelle verknüpft neue Promos und Bundles erst mit Verzögerung mit Cardmarket. Bis dahin ordnet das Datenskript sie über die öffentliche Produktliste von Cardmarket selbst zu, aber nur, wenn die Zuordnung eindeutig ist: Der Kartenname kommt bei den offenen Produkten und den offenen Fassungen je genau einmal vor und das Set passt zur Edition, oder eine ganze Edition deckt sich eins zu eins mit den offenen Fassungen eines Sets.
+- Metal und Metal Deluxe bleiben ausgenommen und ohne Preis, bis die Katalogquelle sie verknüpft. Verknüpfungen der Quelle haben immer Vorrang.
+
 ### Punktezähler
 
 - Eigener Eintrag „Punkte“ in der Kopfzeile; braucht weder Katalog noch Netz.

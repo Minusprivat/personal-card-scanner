@@ -1,13 +1,14 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { CatalogSource } from '../../src/data/model';
+import type { CardmarketLink, Catalog, CatalogSource } from '../../src/data/model';
 import { buildPriceData, formatDay } from '../../src/data/prices';
 import { existsSync } from 'node:fs';
 import { readFingerprintFile, updateFingerprints, writeFingerprintFile } from './fingerprints';
 import { createImageLoader } from './images';
+import { matchProducts, renderMatchReport, withMatchedLinks, type MatchResult } from './match-products';
 import { MIN_MAIN_COVERAGE_PCT, renderPriceSamples, renderReport, renderUnpricedList } from './report';
-import { loadPriceGuide } from './sources/cardmarket';
+import { loadPriceGuide, loadProductList, type CardmarketProduct } from './sources/cardmarket';
 import { OpenRiftSource } from './sources/openrift';
 import { computeStats, pct } from './stats';
 
@@ -46,6 +47,32 @@ async function report(offline: boolean) {
   }
 }
 
+interface MatchedLinks {
+  links: Map<string, CardmarketLink>;
+  /** null, wenn die Produktliste nicht zu bekommen war; dann gelten nur die Verknüpfungen der Quelle. */
+  match: { result: MatchResult; products: CardmarketProduct[] } | null;
+}
+
+/**
+ * Verknüpfungen der Katalogquelle, ergänzt um die eigene Zuordnung neuer Cardmarket-Produkte
+ * (match-products.ts). Fällt die Produktliste aus, läuft der Bau ohne die Ergänzung weiter:
+ * Sie ist Beiwerk und darf die tägliche Aktualisierung nicht anhalten.
+ */
+async function loadLinks(source: CatalogSource, catalog: Catalog, offline: boolean): Promise<MatchedLinks> {
+  const links = await source.loadCardmarketLinks();
+  try {
+    const products = await loadProductList({ cacheDir: CACHE_DIR, offline });
+    const result = matchProducts(catalog, links, products);
+    return { links: withMatchedLinks(links, result.matches), match: { result, products } };
+  } catch (err) {
+    console.warn(`Eigene Cardmarket-Zuordnung ausgelassen: ${err instanceof Error ? err.message : String(err)}`);
+    return { links, match: null };
+  }
+}
+
+const matchSummary = (result: MatchResult) =>
+  `${result.matches.length} Produkte zugeordnet, ${result.ambiguous.length} mehrdeutig, ${result.unknown.length} ohne Fassung im Katalog`;
+
 /** Schreibt die Tagesdaten, die die App beim Start lädt. */
 async function build(offline: boolean) {
   const source: CatalogSource = new OpenRiftSource({ cacheDir: CACHE_DIR, offline });
@@ -60,7 +87,8 @@ async function build(offline: boolean) {
   await writeFile(path.join(dir, 'catalog.json'), json);
   console.log(`public/data/catalog.json: ${data.skus.length} Einträge, ${(json.length / 1024).toFixed(0)} KB.`);
 
-  const links = await source.loadCardmarketLinks();
+  const { links, match } = await loadLinks(source, catalog, offline);
+  if (match) console.log(`Eigene Cardmarket-Zuordnung: ${matchSummary(match.result)}.`);
   const guide = await loadPriceGuide({ cacheDir: CACHE_DIR, offline });
   const prices = buildPriceData(catalog.skus, links, guide);
   const pricesJson = JSON.stringify(prices);
@@ -76,11 +104,30 @@ async function samples(offline: boolean) {
   const opts = { cacheDir: CACHE_DIR, offline };
   const source: CatalogSource = new OpenRiftSource(opts);
   const catalog = await source.loadCatalog();
-  const prices = buildPriceData(catalog.skus, await source.loadCardmarketLinks(), await loadPriceGuide(opts));
+  const { links } = await loadLinks(source, catalog, offline);
+  const prices = buildPriceData(catalog.skus, links, await loadPriceGuide(opts));
   const docs = path.join(ROOT, 'docs');
   await mkdir(docs, { recursive: true });
   await writeFile(path.join(docs, 'm2-stichproben.md'), renderPriceSamples(catalog, prices));
   console.log(`docs/m2-stichproben.md geschrieben, Preisstand ${formatDay(prices.createdAt)}.`);
+}
+
+/** Schreibt den Bericht über die eigene Zuordnung von Cardmarket-Produkten. */
+async function match(offline: boolean) {
+  const source: CatalogSource = new OpenRiftSource({ cacheDir: CACHE_DIR, offline });
+  const catalog = await source.loadCatalog();
+  const loaded = await loadLinks(source, catalog, offline);
+  if (!loaded.match) {
+    process.exitCode = 1;
+    return;
+  }
+  const docs = path.join(ROOT, 'docs');
+  await mkdir(docs, { recursive: true });
+  await writeFile(
+    path.join(docs, 'cardmarket-zuordnung.md'),
+    renderMatchReport(catalog, loaded.match.result, loaded.match.products, new Date().toISOString()),
+  );
+  console.log(`docs/cardmarket-zuordnung.md geschrieben: ${matchSummary(loaded.match.result)}.`);
 }
 
 /**
@@ -135,11 +182,13 @@ if (command === 'report') {
   await build(offline);
 } else if (command === 'samples') {
   await samples(offline);
+} else if (command === 'match') {
+  await match(offline);
 } else if (command === 'images') {
   await images(offline);
 } else if (command === 'fingerprints') {
   await fingerprints(offline);
 } else {
-  console.error('Aufruf: tsx scripts/build-data/index.ts report|build|samples [--offline]');
+  console.error('Aufruf: tsx scripts/build-data/index.ts report|build|samples|match|images|fingerprints [--offline]');
   process.exitCode = 1;
 }

@@ -12,7 +12,7 @@ Private Riftbound-Sammlungs-App als PWA für Android und PC, zusätzlich als And
 - **Wünsche vom 17.11.2026:** gebaut: automatische Sicherung, Knopf „Nach Updates suchen“, Cardmarket-Link im Scanner, Filter mit Mehrfachauswahl, Suche im Kartentext. Im Browser geprüft; offen ist die Prüfung auf dem Handy, vor allem der automatischen Sicherung und des Wiederherstellens (laufen nur in der Android-App). Der Foil-Filter im Cardmarket-Link (`isFoil=Y`) ist nicht an der echten Seite geprüft.
 - **Punktezähler:** gebaut (1 gegen 1 bis 8, Conquer/Hold), dazu Zeitlimit mit Overtime und Expertenmodus (wer beginnt, „Pass turn“, Zugnummer, History). Im Browser geprüft; offen: Prüfung auf dem Handy (Bildschirm bleibt an, Vibration, Bedienung zu zweit).
 - **Selbst-Update:** ab 0.1.15 repariert (Hänger beim Laden des Bausteins, Prüfsumme). Vom Nutzer am 17.11.2026 auf dem Handy bestätigt: Die Version wechselt von selbst.
-- **Sammlung nach Karten:** Die Übersicht zeigt eine Kachel je Karte mit dem Bestand je Art (Normal, Foil, Promo, Metal); die Kartenansicht nennt die Herkunft jeder Sonderausgabe. Offen: Für rund 200 Cardmarket-Produkte (Metal, Radiance-Promos, T1-, K/DA- und Worlds-2026-Bundle) liefert OpenRift noch keine Verknüpfung; diese Fassungen stehen im Katalog, haben aber keinen Preis und keinen Cardmarket-Link. Vorschlag liegt beim Nutzer: eigene Zuordnung über die Produktliste von Cardmarket, nur bei eindeutigen Treffern.
+- **Sammlung nach Karten:** Die Übersicht zeigt eine Kachel je Karte mit dem Bestand je Art (Normal, Foil, Promo, Metal); die Kartenansicht nennt die Herkunft jeder Sonderausgabe. Für rund 200 Cardmarket-Produkte liefert OpenRift noch keine Verknüpfung. Das Datenskript ordnet davon selbst zu, was eindeutig ist (Stand 17.11.2026: 39, darunter K/DA Couture und Worlds 2026 Bundle; Bericht in `docs/cardmarket-zuordnung.md`). Offen bleiben die Metal-Karten (116 Produkte, je Legende zwei gleichnamige, nicht unterscheidbar) und rund 15 Karten, die im Katalog ganz fehlen (z. B. Lillia, Fae Fawn als Promo); beides löst sich erst, wenn OpenRift nachzieht.
 
 Repository: https://github.com/Minusprivat/personal-card-scanner · Web-App: https://minusprivat.github.io/personal-card-scanner/ · APK: https://github.com/Minusprivat/personal-card-scanner/releases/download/apk/card-scanner.apk
 
@@ -29,6 +29,7 @@ Repository: https://github.com/Minusprivat/personal-card-scanner · Web-App: htt
 | Katalog für die App schreiben (`public/data/`) | `npm run data:build` |
 | Beides ohne Netz, aus `.cache/` | `npm run data:report:offline`, `npm run data:build:offline` |
 | Stichproben für den Preisvergleich schreiben | `npm run data:samples` |
+| Bericht über die eigene Cardmarket-Zuordnung schreiben (`docs/cardmarket-zuordnung.md`) | `npx tsx scripts/build-data/index.ts match` (bewusst ohne Eintrag in `package.json`, siehe Regeln) |
 | App-Symbole neu erzeugen | `npm run icons` |
 | Kartenbilder für die Entwicklung laden (einmalig, gedrosselt, nach `.cache/images/`) | `npm run data:images` |
 | Fingerabdrücke für neue Katalogbilder berechnen | `npm run data:fingerprints` |
@@ -84,7 +85,8 @@ Commits in diesem Repository nutzen die GitHub-noreply-Adresse (lokale Git-Einst
 - `android/` – Capacitor-Projekt. `app/debug.p12` ist der feste, bewusst öffentliche Signaturschlüssel; nicht ersetzen, sonst lassen sich Updates nur nach Deinstallation (Datenverlust) einspielen.
 - `scripts/build-data/` – Node-Datenskript.
   - `sources/openrift.ts`: einzige Stelle, die das OpenRift-Format kennt; übersetzt auch die Auszeichnung des Kartentexts in Klartext (`Card.text`).
-  - `sources/cardmarket.ts`: Cardmarket-Preisdatei.
+  - `sources/cardmarket.ts`: Cardmarket-Preisdatei und Produktliste.
+  - `match-products.ts`: eigene Zuordnung neuer Cardmarket-Produkte zu Fassungen, solange die Katalogquelle sie noch nicht verknüpft. Ordnet nur Eindeutiges zu (Regeln „Name“ und „Edition“), nie Metal; die Verknüpfungen der Quelle haben Vorrang.
   - `http.ts`: Abruf mit User-Agent, Zwischenspeicher und ETag.
   - `stats.ts`, `report.ts`: Auswertung und M0-Bericht.
 - `tests/` – Vitest. `m0-abnahme.test.ts` prüft gegen die Daten in `.cache/`; `collection.test.ts` prüft zusätzlich die echte Piltover-Datei unter `testdata/piltoverarchive/`. Fehlen die lokalen Daten, werden diese Tests übersprungen.
@@ -103,6 +105,8 @@ Commits in diesem Repository nutzen die GitHub-noreply-Adresse (lokale Git-Einst
 - Erkennung nicht an künstlichen Tests feinschleifen: Maßgeblich sind die echten Fotos unter `testdata/photos/`.
 - Piltover Archive nicht automatisch abrufen (Nutzungsbedingungen untersagen Scraping); das Format stammt allein aus den Dateien des Nutzers.
 - Preise kommen nur aus der Cardmarket-Preisdatei, nicht aus OpenRifts `/api/v1/prices` (enthält Platzhalter).
+- Die eigene Cardmarket-Zuordnung rät nie: Ein falscher Preis ist schlimmer als keiner. Neue Regeln nur, wenn sie an den vorhandenen Verknüpfungen der Quelle nachweislich keinen Fehlgriff ergeben; Metal bleibt ausgenommen, bis die Quelle die Produkte unterscheidet.
+- `package.json` nicht für neue Hilfsbefehle anfassen: Jede Änderung daran hebt die Mindest-APK an und zwingt alle Handys zu einer neuen APK von Hand. Hilfsbefehle direkt mit `npx tsx …` aufrufen.
 - Bestand und Preis hängen an der Sku. Es gibt vier Finishes: Normal, Foil, Metal, Metal Deluxe. Metal hat keinen Cardmarket-Preis.
 - Keine `.gz`-Dateien unter `public/`: Der Android-Bau packt sie aus und benennt sie um, die App findet sie in der APK dann nicht (so fiel das Nummernlesen bis Version 0.1.9 in der APK aus). Der Workflow prüft nach dem Bau, dass jede Datei aus `dist/` unverändert in der APK liegt.
 - Der Scanner wartet nie unbegrenzt auf die Texterkennung; ein sicherer Bildtreffer zählt auch ohne gelesene Nummer.

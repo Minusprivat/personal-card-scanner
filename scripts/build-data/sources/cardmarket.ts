@@ -34,3 +34,33 @@ export async function loadPriceGuide(opts: FetchOptions): Promise<PriceGuide> {
   const res = await fetchJsonCached<unknown>('cardmarket-price-guide', CARDMARKET_PRICE_GUIDE_URL, opts);
   return parsePriceGuide(res.data);
 }
+
+/** Öffentliche Produktliste von Cardmarket: alle Einzelkarten mit Name und Edition. */
+export const CARDMARKET_PRODUCT_LIST_URL =
+  'https://downloads.s3.cardmarket.com/productCatalog/productList/products_singles_22.json';
+
+/** Ein Produkt der Liste. Mehr als Name und Edition nennt sie nicht: keine Nummer, kein Finish. */
+export interface CardmarketProduct {
+  productId: number;
+  name: string;
+  /** Edition bei Cardmarket; ihr Name steht nicht in der Liste. */
+  expansionId: number;
+}
+
+export function parseProductList(raw: unknown): CardmarketProduct[] {
+  const root = raw as { products?: unknown } | null;
+  if (!root || !Array.isArray(root.products)) {
+    throw new Error('Cardmarket-Produktliste hat ein unerwartetes Format.');
+  }
+  const products: CardmarketProduct[] = [];
+  for (const v of root.products as Array<Record<string, unknown>>) {
+    if (typeof v?.idProduct !== 'number' || typeof v.name !== 'string' || typeof v.idExpansion !== 'number') continue;
+    products.push({ productId: v.idProduct, name: v.name, expansionId: v.idExpansion });
+  }
+  return products;
+}
+
+export async function loadProductList(opts: FetchOptions): Promise<CardmarketProduct[]> {
+  const res = await fetchJsonCached<unknown>('cardmarket-products', CARDMARKET_PRODUCT_LIST_URL, opts);
+  return parseProductList(res.data);
+}
