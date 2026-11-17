@@ -11,6 +11,7 @@ Private Riftbound-Sammlungs-App als PWA für Android und PC, zusätzlich als And
 - **M4 Scan-Sitzung:** gebaut (Scan-Seite, Sitzungsliste, Übernahme). Offen: Test mit echter Kamera durch den Nutzer; die Schwellen in `src/scan/tracker.ts` sind geschätzt und nach seinen Rückmeldungen einzustellen.
 - **Wünsche vom 17.11.2026:** gebaut: automatische Sicherung, Knopf „Nach Updates suchen“, Cardmarket-Link im Scanner, Filter mit Mehrfachauswahl, Suche im Kartentext. Im Browser geprüft; offen ist die Prüfung auf dem Handy, vor allem der automatischen Sicherung und des Wiederherstellens (laufen nur in der Android-App). Der Foil-Filter im Cardmarket-Link (`isFoil=Y`) ist nicht an der echten Seite geprüft.
 - **Punktezähler:** gebaut (1 gegen 1 bis 8, Conquer/Hold), dazu Zeitlimit mit Overtime und Expertenmodus (wer beginnt, „Pass turn“, Zugnummer, History). Im Browser geprüft; offen: Prüfung auf dem Handy (Bildschirm bleibt an, Vibration, Bedienung zu zweit).
+- **Seite „Spiel“ (17.11.2026):** Events bei Riot und BoundRift-Profil als Browser-Fenster in der App. Braucht den Baustein `@capacitor/browser`, also eine APK ab dieser Version. Offen: Prüfung auf dem Handy (öffnet sich das Fenster über der App, ist man dort bei Riot angemeldet).
 - **Selbst-Update:** ab 0.1.15 repariert (Hänger beim Laden des Bausteins, Prüfsumme). Vom Nutzer am 17.11.2026 auf dem Handy bestätigt: Die Version wechselt von selbst.
 - **Sammlung nach Karten:** Die Übersicht zeigt eine Kachel je Karte mit dem Bestand je Art (Normal, Foil, Promo, Metal); die Kartenansicht nennt die Herkunft jeder Sonderausgabe. Für rund 200 Cardmarket-Produkte liefert OpenRift noch keine Verknüpfung. Das Datenskript ordnet davon selbst zu, was eindeutig ist (Stand 17.11.2026: 39, darunter K/DA Couture und Worlds 2026 Bundle; Bericht in `docs/cardmarket-zuordnung.md`). Offen bleiben die Metal-Karten (116 Produkte, je Legende zwei gleichnamige, nicht unterscheidbar) und rund 15 Karten, die im Katalog ganz fehlen (z. B. Lillia, Fae Fawn als Promo); beides löst sich erst, wenn OpenRift nachzieht.
 
@@ -60,6 +61,7 @@ Commits in diesem Repository nutzen die GitHub-noreply-Adresse (lokale Git-Einst
   - `csv.ts`, `backup.ts`, `piltover.ts`: Sicherung (JSON), Tabelle (CSV), Piltover-Archive-Format.
   - `auto-backup.ts`: Dateinamen, Aufräumen und Erinnerung der automatischen Sicherung.
   - `versions.ts`: Art einer Fassung (Normal, Foil, Promo, Metal), Zählung je Karte und lesbare Herkunft der Sonderausgaben.
+  - `links.ts`: Ziele bei PlayRiftbound und BoundRift; liest die Spielernummer aus einem eingefügten BoundRift-Link.
   - `score.ts`: Punktezähler. Die Partie ist eine Liste von Ereignissen mit Zeitpunkt (Punkt, Korrektur, „Pass turn“, Beginn); Stand, Sieg bei 8, Spieldauer, Zeitlimit mit Overtime, Züge und Verlauf werden daraus berechnet, nichts davon wird eigens gespeichert.
 - `src/scan/` – Kartenerkennung, von App und Prüfprogrammen gemeinsam genutzt.
   - `fingerprint.ts`: Bild-Fingerabdruck (Perceptual Hash über ganze Karte und Motiv). Bei Änderungen `FP_VERSION` erhöhen und alle Fingerabdrücke neu berechnen.
@@ -71,6 +73,8 @@ Commits in diesem Repository nutzen die GitHub-noreply-Adresse (lokale Git-Einst
   - `candidates.ts`: übersetzt Treffer in Drucke, sortiert die Auswahl und wendet die gelesene Nummer an.
   - `ocr-guard.ts`: Zeitgrenzen für die Texterkennung; lädt oder antwortet sie nicht, läuft der Scanner ohne Nummer weiter.
   - `number.ts`: Lage der Nummernzeile, Aufbereitung für die Texterkennung, unscharfer Vergleich mit den Nummern der Kandidaten.
+- `src/app/play/` – Seite „Spiel“ (`PlayView.tsx`, `#/spiel`): Einstieg zum Punktezähler, Link zu den Events bei Riot und zum eigenen Profil bei BoundRift. Verlinkt nur, ruft nichts ab.
+- `src/app/browser.ts` – öffnet fremde Seiten in der Android-App als Browser-Fenster über der App (`@capacitor/browser`, Chrome Custom Tab), in der Web-App im neuen Tab.
 - `src/app/score/` – Punktezähler (`ScoreView.tsx`), Seite `#/punkte`. Liegt als feste Fläche unter der Kopfzeile (`--topbar-h` in `styles.css`) und wird unabhängig vom Katalog angezeigt.
 - `src/app/scan/` – Scan-Seite: Kamera (`useCamera.ts`), Worker-Anbindung (`useRecognizer.ts`), Texterkennung (`ocr.ts`), `ScanView.tsx`, `SessionList.tsx`.
 - `public/ocr/` – Rechenkern und Sprachmodell der Texterkennung; entsteht durch `scripts/copy-ocr.mjs` aus `node_modules` und ist von Git ausgenommen.
@@ -104,6 +108,7 @@ Commits in diesem Repository nutzen die GitHub-noreply-Adresse (lokale Git-Einst
 - Eine falsche Karte von selbst zu zählen ist der schlimmste Fehler des Scanners. Änderungen an Erkennung oder Schwellen nur behalten, wenn `npm run scan:photos` weiterhin „von selbst gezählt, falsche Karte: 0“ meldet.
 - Erkennung nicht an künstlichen Tests feinschleifen: Maßgeblich sind die echten Fotos unter `testdata/photos/`.
 - Piltover Archive nicht automatisch abrufen (Nutzungsbedingungen untersagen Scraping); das Format stammt allein aus den Dateien des Nutzers.
+- Keine Anmeldung bei Riot in der App nachbauen und keine Zugangsdaten durch eigenen Code führen: Die App öffnet nur die echte Seite im Browser-Fenster. PlayRiftbound und BoundRift werden verlinkt, nicht abgerufen (BoundRift ist ein Hobbyprojekt ohne dokumentierte Schnittstelle; vor einem Abruf den Betreiber fragen).
 - Preise kommen nur aus der Cardmarket-Preisdatei, nicht aus OpenRifts `/api/v1/prices` (enthält Platzhalter).
 - Die eigene Cardmarket-Zuordnung rät nie: Ein falscher Preis ist schlimmer als keiner. Neue Regeln nur, wenn sie an den vorhandenen Verknüpfungen der Quelle nachweislich keinen Fehlgriff ergeben; Metal bleibt ausgenommen, bis die Quelle die Produkte unterscheidet.
 - `package.json` nicht für neue Hilfsbefehle anfassen: Jede Änderung daran hebt die Mindest-APK an und zwingt alle Handys zu einer neuen APK von Hand. Hilfsbefehle direkt mit `npx tsx …` aufrufen.

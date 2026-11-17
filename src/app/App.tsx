@@ -19,6 +19,7 @@ import {
 import { useLocalStore } from './local-store';
 import { isNativeApp } from './save';
 import { ScanView } from './scan/ScanView';
+import { PlayView } from './play/PlayView';
 import { ScoreView } from './score/ScoreView';
 import { APK_URL } from './updater';
 
@@ -63,8 +64,8 @@ export function App() {
           <a href="#/datei" aria-current={route.page === 'files' ? 'page' : undefined}>
             Sicherung
           </a>
-          <a href="#/punkte" aria-current={route.page === 'score' ? 'page' : undefined}>
-            Punkte
+          <a href="#/spiel" aria-current={route.page === 'play' || route.page === 'score' ? 'page' : undefined}>
+            Spiel
           </a>
         </nav>
       </header>
@@ -127,6 +128,12 @@ export function App() {
 
       {/* Der Punktezähler braucht weder Katalog noch Netz und liegt über dem Rest der Seite. */}
       {route.page === 'score' && <ScoreView />}
+      {/* Auch die Seite „Spiel“ kommt ohne Katalog aus: Sie verlinkt nur. */}
+      {route.page === 'play' && (
+        <main>
+          <PlayView />
+        </main>
+      )}
 
       {catalog.status === 'loading' && <p className="notice">Katalog wird geladen …</p>}
       {catalog.status === 'error' && (
@@ -138,7 +145,7 @@ export function App() {
       {catalog.status === 'ready' && (
         <>
           {/* Die Sammlung bleibt im Hintergrund erhalten, damit Filter und Position nicht verloren gehen. */}
-          <main hidden={route.page === 'files' || route.page === 'scan' || route.page === 'score'}>
+          <main hidden={route.page !== 'collection' && route.page !== 'card'}>
             <CollectionView index={catalog.index} stock={stock} prices={prices} />
           </main>
           {route.page === 'files' && (
