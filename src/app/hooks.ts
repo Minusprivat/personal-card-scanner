@@ -1,10 +1,13 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { buildIndex, type CatalogIndex } from '../data/catalog-index';
 import type { PriceData } from '../data/prices';
+import { shouldRecheck } from '../data/update';
+import { findRestorable, startAutoBackup, type Restorable } from './auto-backup';
 import { loadCatalog, loadPrices } from './catalog-loader';
 import { checkForUpdate, installedApkVersion, markAppReady, type AppUpdate } from './updater';
 import { db, type SessionRow } from './db';
+import { isNativeApp } from './save';
 
 export type CatalogState =
   | { status: 'loading' }
@@ -52,24 +55,79 @@ export const APP_VERSION: string = import.meta.env.VITE_APP_VERSION ?? 'dev';
 
 const NO_UPDATE: AppUpdate = { kind: 'none' };
 
+export interface UpdateCheck {
+  update: AppUpdate;
+  /** true, solange eine Prüfung läuft. */
+  checking: boolean;
+  /** Prüft sofort, z. B. über den Knopf „Nach Updates suchen“. */
+  check: () => void;
+}
+
 /**
- * Selbst-Update der Android-App (siehe updater.ts): prüft beim Start einmal auf eine neue
- * Version und lädt sie im Hintergrund. In der Web-App und lokal bleibt es bei „nichts zu tun“.
+ * Update-Prüfung (siehe updater.ts): beim Start der Android-App, beim Zurückkehren in die
+ * App nach längerer Pause und auf Knopfdruck. Die Web-App prüft beim Start nicht selbst;
+ * das erledigt dort der Service Worker.
  */
-export function useAppUpdate(): AppUpdate {
+export function useAppUpdate(): UpdateCheck {
   const [update, setUpdate] = useState<AppUpdate>(NO_UPDATE);
+  const [checking, setChecking] = useState(false);
+  const busy = useRef(false);
+  const lastCheck = useRef(Date.now());
+
+  const check = useCallback(() => {
+    if (busy.current) return;
+    busy.current = true;
+    lastCheck.current = Date.now();
+    setChecking(true);
+    void checkForUpdate(APP_VERSION)
+      .then((result) =>
+        // Ein schon geladenes Update bleibt stehen, auch wenn eine spätere Prüfung ohne Netz scheitert.
+        setUpdate((previous) =>
+          result.kind === 'failed' && (previous.kind === 'ready' || previous.kind === 'apk') ? previous : result,
+        ),
+      )
+      .finally(() => {
+        busy.current = false;
+        setChecking(false);
+      });
+  }, []);
+
   useEffect(() => {
     // Die Oberfläche steht: Ein gerade eingespieltes Update gilt damit als gelungen.
     markAppReady();
+    if (isNativeApp()) check();
+    const onVisible = () => {
+      if (document.visibilityState === 'visible' && shouldRecheck(lastCheck.current, Date.now())) check();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [check]);
+
+  return { update, checking, check };
+}
+
+/** Sichert die Sammlung der Android-App nach jeder Änderung (siehe auto-backup.ts). */
+export function useAutoBackup(index: CatalogIndex | null): void {
+  useEffect(() => (index ? startAutoBackup(index) : undefined), [index]);
+}
+
+/**
+ * Android-App: Ist die Sammlung beim Start leer und liegt eine lesbare Sicherung im Ordner
+ * der App, bietet die App sie zum Wiederherstellen an. `dismiss` blendet das Angebot aus.
+ */
+export function useRestoreOffer(): { offer: Restorable | null; dismiss: () => void } {
+  const [offer, setOffer] = useState<Restorable | null>(null);
+  useEffect(() => {
     let cancelled = false;
-    void checkForUpdate(APP_VERSION).then((result) => {
-      if (!cancelled) setUpdate(result);
+    void findRestorable().then((found) => {
+      if (!cancelled) setOffer(found);
     });
     return () => {
       cancelled = true;
     };
   }, []);
-  return update;
+  const dismiss = useCallback(() => setOffer(null), []);
+  return { offer, dismiss };
 }
 
 /**

@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { buildNumber, decideUpdate, MAX_UPDATE_TRIES, parsePublished } from '../src/data/update';
+import {
+  buildNumber,
+  decideUpdate,
+  MAX_UPDATE_TRIES,
+  parsePublished,
+  shouldRecheck,
+  UPDATE_RECHECK_MS,
+} from '../src/data/update';
 
 describe('Versionsdatei', () => {
   it('liest Version und älteste passende APK', () => {
@@ -20,6 +27,15 @@ describe('Versionsdatei', () => {
   it('liest die Bau-Nummer aus der Version', () => {
     expect(buildNumber('0.1.12')).toBe(12);
     expect(buildNumber('dev')).toBeNaN();
+  });
+});
+
+describe('Erneute Prüfung', () => {
+  it('prüft nach einer Stunde Pause von selbst wieder, vorher nicht', () => {
+    const start = 1_000_000;
+    expect(shouldRecheck(start, start + UPDATE_RECHECK_MS - 1)).toBe(false);
+    expect(shouldRecheck(start, start + UPDATE_RECHECK_MS)).toBe(true);
+    expect(UPDATE_RECHECK_MS).toBe(60 * 60 * 1000);
   });
 });
 

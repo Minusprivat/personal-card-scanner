@@ -42,6 +42,12 @@ export interface Card {
   power: number | null;
   keywords: string[];
   tags: string[];
+  /**
+   * Regeltext der Karte in Klartext, Zeilen durch "\n" getrennt; so, wie er auf dem ersten
+   * Druck steht (samt Erklärungen in Klammern). Fehlt bei Karten ohne Text und in älteren
+   * Katalogständen, die die App noch gespeichert hat.
+   */
+  text?: string;
 }
 
 export interface Sku {

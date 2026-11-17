@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { imageUrl, printCode, printImageId, printName, type CatalogIndex } from '../../data/catalog-index';
 import { FINISH_LABELS } from '../../data/model';
-import { formatEuro, type PriceData } from '../../data/prices';
+import { cardmarketLinkFor, formatEuro, type PriceData } from '../../data/prices';
 import { COPY_LIMIT, copyCount, copyTotal, variantLabel } from '../../data/prints';
 import { db, type SessionRow } from '../db';
 
@@ -68,6 +68,7 @@ export function SessionList({
           const imageId = printImageId(print);
           const variant = variantLabel(sku);
           const low = prices?.entries[sku.id]?.low ?? null;
+          const market = cardmarketLinkFor(prices, sku, print.skus);
           // Mit dieser Sitzung zusammen mehr als COPY_LIMIT Karten der Fassung?
           const copies = copyCount(print, stock, sessionQty);
           const tooMany = copyTotal(copies) > COPY_LIMIT;
@@ -108,6 +109,11 @@ export function SessionList({
                   </select>
                 ) : (
                   <span>{FINISH_LABELS[sku.finish]}</span>
+                )}
+                {market && (
+                  <a className="textlink session-market" href={market} target="_blank" rel="noopener">
+                    Cardmarket (EN)
+                  </a>
                 )}
               </div>
               <div className="stepper">

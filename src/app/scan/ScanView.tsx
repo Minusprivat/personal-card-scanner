@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { imageUrl, printCode, printImageId, printName, type CatalogIndex } from '../../data/catalog-index';
 import { FINISH_LABELS, type Print } from '../../data/model';
-import { formatEuro, type PriceData } from '../../data/prices';
+import { cardmarketLinkFor, formatEuro, type PriceData } from '../../data/prices';
 import { COPY_LIMIT, copyCount, copyTotal, variantLabel } from '../../data/prints';
 import {
   decideByNumber,
@@ -294,6 +294,8 @@ export function ScanView({
   const lastPrint = lastSku && index.printBySkuId.get(lastSku.id);
   // Laufend berechnet, damit die Warnung auch nach „Andere Fassung“ oder „Rückgängig“ stimmt.
   const lastCopies = lastPrint ? copyCount(lastPrint, stock, sessionQty) : null;
+  // Folgt dem gewählten Finish: Bei Foil zeigt Cardmarket nur Foil-Angebote.
+  const lastMarket = lastSku && lastPrint ? cardmarketLinkFor(prices, lastSku, lastPrint.skus) : null;
 
   const status =
     recognizer.status === 'loading'
@@ -432,7 +434,13 @@ export function ScanView({
               >
                 Rückgängig
               </button>
+              {lastMarket && (
+                <a className="button" href={lastMarket} target="_blank" rel="noopener">
+                  Auf Cardmarket (EN) öffnen
+                </a>
+              )}
             </div>
+            {prices && !lastMarket && <p className="sub">Cardmarket führt diese Fassung nicht.</p>}
             {last.hit.prints.length > 1 && (
               <details>
                 <summary>Andere Fassung dieser Karte</summary>

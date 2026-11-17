@@ -1,11 +1,26 @@
 import { useState } from 'react';
+import { needsBackupReminder } from '../data/auto-backup';
+import { formatDay } from '../data/prices';
+import { backupMark } from './auto-backup';
 import { CardDetail } from './CardDetail';
 import { CollectionView } from './CollectionView';
+import { db } from './db';
 import { FilesView } from './FilesView';
-import { useAppUpdate, useCatalog, usePrices, useRoute, useSession, useStock } from './hooks';
+import {
+  useAppUpdate,
+  useAutoBackup,
+  useCatalog,
+  usePrices,
+  useRestoreOffer,
+  useRoute,
+  useSession,
+  useStock,
+} from './hooks';
+import { useLocalStore } from './local-store';
+import { isNativeApp } from './save';
 import { ScanView } from './scan/ScanView';
+import { APK_URL } from './updater';
 
-const APK_URL = 'https://github.com/Minusprivat/personal-card-scanner/releases/download/apk/card-scanner.apk';
 const DISMISSED_UPDATE = 'dismissedUpdate';
 
 export function App() {
@@ -15,13 +30,21 @@ export function App() {
   const prices = usePrices();
   const session = useSession();
   const sessionQty = session.reduce((n, r) => n + r.qty, 0);
-  const update = useAppUpdate();
+  const updates = useAppUpdate();
+  const { update } = updates;
   // Der Hinweis auf eine neue APK lässt sich je Version wegklicken.
   const [dismissed, setDismissed] = useState(() => localStorage.getItem(DISMISSED_UPDATE));
   const dismiss = (version: string) => {
     localStorage.setItem(DISMISSED_UPDATE, version);
     setDismissed(version);
   };
+
+  useAutoBackup(catalog.status === 'ready' ? catalog.index : null);
+  const restore = useRestoreOffer();
+  // Die Web-App kann nicht von selbst sichern; sie erinnert nach größeren Änderungen daran.
+  const mark = useLocalStore(backupMark);
+  const cards = [...stock.values()].reduce((a, b) => a + b, 0);
+  const remind = !isNativeApp() && cards > 0 && route.page !== 'files' && needsBackupReminder(cards, mark);
 
   return (
     <div className="app">
@@ -44,9 +67,11 @@ export function App() {
 
       {update.kind === 'ready' && (
         <p className="notice ok">
-          Version {update.version} ist geladen und wird beim nächsten Öffnen der App aktiv.{' '}
+          {update.native
+            ? `Version ${update.version} ist geladen und wird beim nächsten Öffnen der App aktiv.`
+            : `Version ${update.version} wird geladen; die Seite lädt gleich von selbst neu.`}{' '}
           <button type="button" className="link" onClick={update.apply}>
-            Jetzt neu starten
+            {update.native ? 'Jetzt neu starten' : 'Jetzt neu laden'}
           </button>
         </p>
       )}
@@ -58,6 +83,39 @@ export function App() {
           </a>{' '}
           und über die vorhandene App installieren; die Sammlung bleibt erhalten.{' '}
           <button type="button" className="link" onClick={() => dismiss(update.version)}>
+            Später
+          </button>
+        </p>
+      )}
+
+      {restore.offer && cards === 0 && (
+        <p className="notice ok" role="status">
+          Die Sammlung auf diesem Gerät ist leer. Im Ordner „Dokumente/CardScanner“ liegt eine Sicherung vom{' '}
+          {formatDay(restore.offer.day)} mit {restore.offer.cards} Karten.{' '}
+          <button
+            type="button"
+            className="link"
+            onClick={() => {
+              const { state } = restore.offer!;
+              void db.replaceCollection(state).then(restore.dismiss);
+            }}
+          >
+            Wiederherstellen
+          </button>{' '}
+          <button type="button" className="link" onClick={restore.dismiss}>
+            Nicht jetzt
+          </button>
+        </p>
+      )}
+      {remind && (
+        <p className="notice" role="status">
+          {mark?.at
+            ? `Seit der letzten Sicherung am ${formatDay(mark.at)} hat sich die Sammlung um ${Math.abs(cards - mark.cards)} Karten geändert.`
+            : `Deine Sammlung mit ${cards} Karten liegt nur in diesem Browser und ist noch nicht gesichert.`}{' '}
+          <a className="textlink" href="#/datei">
+            Zur Sicherung
+          </a>{' '}
+          <button type="button" className="link" onClick={() => backupMark.set({ at: mark?.at ?? null, cards })}>
             Später
           </button>
         </p>
@@ -78,7 +136,7 @@ export function App() {
           </main>
           {route.page === 'files' && (
             <main>
-              <FilesView index={catalog.index} stock={stock} />
+              <FilesView index={catalog.index} stock={stock} updates={updates} />
             </main>
           )}
           {/* Die Scan-Seite wird nur bei Bedarf aufgebaut: Sie schaltet die Kamera ein und lädt OpenCV. */}

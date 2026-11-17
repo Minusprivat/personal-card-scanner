@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { parsePriceGuide } from '../scripts/build-data/sources/cardmarket';
-import { parseOpenRiftCatalog, parseOpenRiftLinks } from '../scripts/build-data/sources/openrift';
+import { parseOpenRiftCatalog, parseOpenRiftLinks, plainCardText } from '../scripts/build-data/sources/openrift';
 import { computeStats, pct } from '../scripts/build-data/stats';
 import { renderReport, renderUnpricedList } from '../scripts/build-data/report';
-import { cardmarketEnglishUrl, lookupPrice, priceFromRow } from '../src/data/prices';
+import { cardmarketEnglishUrl, cardmarketLinkFor, lookupPrice, priceFromRow } from '../src/data/prices';
 import { groupPrints, variantLabel } from '../src/data/prints';
 import { rawCatalog, rawLinks, rawPriceGuide, sku } from './fixtures';
 
@@ -98,6 +98,32 @@ describe('Preise', () => {
       'https://www.cardmarket.com/en/Riftbound/Products?idProduct=847523&language=1',
     );
   });
+
+  it('setzt für Foil zusätzlich den Foil-Filter', () => {
+    expect(cardmarketEnglishUrl(847523, true)).toBe(
+      'https://www.cardmarket.com/en/Riftbound/Products?idProduct=847523&language=1&isFoil=Y',
+    );
+  });
+
+  describe('Cardmarket-Link der gescannten Karte', () => {
+    const entry = (productId: number) => ({ productId, low: 1, trend: null, hasSales: true });
+    const prices = { source: 'Cardmarket', createdAt: '', entries: { normal: entry(100), foil: entry(100) } };
+    const print = [{ id: 'normal' }, { id: 'foil' }, { id: 'metal' }];
+
+    it('folgt dem gewählten Finish', () => {
+      expect(cardmarketLinkFor(prices, { id: 'normal', finish: 'normal' }, print)).toBe(cardmarketEnglishUrl(100));
+      expect(cardmarketLinkFor(prices, { id: 'foil', finish: 'foil' }, print)).toBe(cardmarketEnglishUrl(100, true));
+    });
+
+    it('nimmt für Metal das Produkt eines anderen Finishes, ohne Foil-Filter', () => {
+      expect(cardmarketLinkFor(prices, { id: 'metal', finish: 'metal' }, print)).toBe(cardmarketEnglishUrl(100));
+    });
+
+    it('gibt nichts zurück, wenn Cardmarket den Druck nicht führt oder die Preise fehlen', () => {
+      expect(cardmarketLinkFor(prices, { id: 'token', finish: 'normal' }, [{ id: 'token' }])).toBeNull();
+      expect(cardmarketLinkFor(null, { id: 'normal', finish: 'normal' }, print)).toBeNull();
+    });
+  });
 });
 
 describe('OpenRift-Quelle', () => {
@@ -122,6 +148,24 @@ describe('OpenRift-Quelle', () => {
   it('kommt mit fehlendem Bild und fehlendem aufgedruckten Namen zurecht', () => {
     const token = catalog.skus.find((s) => s.id === 'p-token')!;
     expect(token).toMatchObject({ imageId: null, printedName: 'Buff', channels: ['bundle'] });
+  });
+
+  it('übernimmt den Kartentext des ersten Drucks als Klartext', () => {
+    const annie = catalog.cards.find((c) => c.id === 'card-1')!;
+    expect(annie.text).toBe(
+      '[Accelerate] (You may pay (1) Fury-Rune as an additional cost to have me enter ready.)\n' +
+        '[Assault 2] (+2 Might while I’m an attacker.)\n' +
+        'Exhaust: [Reaction] → [Add] Rune.',
+    );
+    // Karten ohne Text tragen das Feld nicht.
+    expect(catalog.cards.find((c) => c.id === 'card-2')).not.toHaveProperty('text');
+  });
+
+  it('übersetzt die Auszeichnung der Quelle in Klartext', () => {
+    expect(plainCardText('[Equip :rb_rune_calm:] _(:rb_rune_calm:: Attach this to a unit you control.)_')).toBe(
+      '[Equip Calm-Rune] (Calm-Rune: Attach this to a unit you control.)',
+    );
+    expect(plainCardText('Pay :rb_energy_12:.  \n Draw 1.')).toBe('Pay (12).\nDraw 1.');
   });
 
   it('bricht bei unbekanntem Finish oder fremdem Aufbau mit klarer Meldung ab', () => {

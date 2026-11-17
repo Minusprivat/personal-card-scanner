@@ -41,7 +41,8 @@ export default defineConfig({
         runtimeCaching: [
           {
             // Katalog und Preise: sofort aus dem Speicher, im Hintergrund auffrischen.
-            urlPattern: ({ url }) => url.pathname.includes('/data/'),
+            // Die Versionsdatei bleibt außen vor: Die Update-Prüfung braucht den Stand des Servers.
+            urlPattern: ({ url }) => url.pathname.includes('/data/') && !url.pathname.endsWith('/version.json'),
             handler: 'StaleWhileRevalidate',
             options: { cacheName: 'tagesdaten' },
           },

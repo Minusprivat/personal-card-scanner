@@ -55,6 +55,8 @@ export function CardDetail({
         </div>
       </div>
 
+      {card?.text && <p className="card-text">{card.text}</p>}
+
       {prints.length === 0 && <p className="notice">Diese Karte steht nicht im Katalog.</p>}
 
       <div className="prints">

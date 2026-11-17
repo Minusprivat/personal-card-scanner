@@ -95,11 +95,99 @@ a {
 
 @media (min-width: 800px) {
   .filters {
-    grid-template-columns: minmax(240px, 2fr) repeat(4, minmax(0, 1fr));
+    grid-template-columns: minmax(240px, 2fr) minmax(200px, 1.5fr) minmax(120px, auto);
   }
   .filters .search {
     grid-column: auto;
   }
+}
+
+/* Auf dem Handy steht das Textfeld neben dem Filter-Knopf; fehlt es, füllt der Knopf die Zeile. */
+.filters .filter-toggle:nth-child(2) {
+  grid-column: 1 / -1;
+}
+
+.filter-toggle {
+  min-height: 44px;
+  padding: 8px 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.filter-toggle.active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.filter-toggle[aria-expanded='true'] {
+  background: var(--surface);
+}
+
+.filter-panel {
+  margin: 4px 0 8px;
+  padding: 4px 12px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.chip-group {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.chip-title {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  min-height: 36px;
+  padding: 4px 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.chip[aria-pressed='true'] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+
+.chip-all {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.chip-all input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--accent);
+}
+
+.filter-hint {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 0.8rem;
 }
 
 input,
@@ -276,6 +364,7 @@ button.link {
 
 .back,
 .buttons button,
+.buttons a.button,
 .counter button {
   min-height: 44px;
   padding: 8px 14px;
@@ -283,6 +372,24 @@ button.link {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   cursor: pointer;
+}
+
+/* Link, der wie ein Knopf aussieht (z. B. „Auf Cardmarket öffnen“). */
+.buttons a.button {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Regeltext in der Kartenansicht; Zeilenumbrüche stehen im Text. */
+.card-text {
+  max-width: 1400px;
+  margin: 0 auto 16px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 0.9rem;
+  white-space: pre-line;
 }
 
 .back {
@@ -723,4 +830,14 @@ button:disabled {
 .session-text .over-limit {
   color: var(--danger);
   white-space: normal;
+}
+
+.session-market {
+  align-self: flex-start;
+  padding: 6px 0;
+}
+
+/* Ergebnis von „Nach Updates suchen“ */
+.panel .update-result {
+  margin: 10px 0 0;
 }

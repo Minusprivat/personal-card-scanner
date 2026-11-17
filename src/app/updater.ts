@@ -1,26 +1,41 @@
-import { decideUpdate, parsePublished, type PublishedVersion } from '../data/update';
+import { buildNumber, decideUpdate, parsePublished, type PublishedVersion } from '../data/update';
 import { isNativeApp } from './save';
 
 /**
- * Selbst-Update der Android-App. Die Web-App im Browser braucht das nicht; dort
- * übernimmt der Service Worker neue Versionen.
+ * Update-Prüfung für beide Fassungen der App.
  *
- * Ablauf: Beim Start fragt die App die Versionsdatei auf GitHub Pages ab. Gibt es eine
- * neuere Version, lädt der Update-Baustein (Capgo Capacitor Updater, im Handbetrieb) das
- * Paket mit dem Web-Teil und merkt es für den nächsten Start vor. Der Baustein spricht
- * dabei nur GitHub Pages an; seine eigenen Server sind in capacitor.config.ts abgeschaltet.
+ * Android-App: Sie fragt die Versionsdatei auf GitHub Pages ab. Gibt es eine neuere Version,
+ * lädt der Update-Baustein (Capgo Capacitor Updater, im Handbetrieb) das Paket mit dem
+ * Web-Teil und merkt es für den nächsten Start vor. Der Baustein spricht dabei nur GitHub
+ * Pages an; seine eigenen Server sind in capacitor.config.ts abgeschaltet. Startet ein
+ * nachgeladenes Paket nicht (kein `markAppReady` innerhalb von zehn Sekunden), kehrt der
+ * Baustein von selbst zum vorigen Stand zurück.
  *
- * Startet ein nachgeladenes Paket nicht (kein `markAppReady` innerhalb von zehn Sekunden),
- * kehrt der Baustein von selbst zum vorigen Stand zurück.
+ * Web-App: Neue Versionen übernimmt der Service Worker. Die Prüfung stößt ihn nur an,
+ * damit eine lange offen gebliebene App nicht auf dem alten Stand bleibt.
+ *
+ * Geprüft wird beim Start (Android-App), beim Zurückkehren in die App nach längerer Pause
+ * und über den Knopf „Nach Updates suchen“.
  */
 
 const PAGES = 'https://minusprivat.github.io/personal-card-scanner/';
+export const APK_URL = 'https://github.com/Minusprivat/personal-card-scanner/releases/download/apk/card-scanner.apk';
 const TRIES_KEY = 'updateTries';
 
 export type AppUpdate =
+  /** Noch nicht geprüft. */
   | { kind: 'none' }
-  /** Das Paket ist geladen und wird beim nächsten Start aktiv; `apply` startet sofort neu. */
-  | { kind: 'ready'; version: string; apply: () => void }
+  /** Lokale Entwicklung: Hier gibt es keine Versionen. */
+  | { kind: 'unavailable' }
+  /** Geprüft: Die App ist aktuell. */
+  | { kind: 'current'; version: string }
+  /** Die Prüfung ist gescheitert, meist ohne Netz. */
+  | { kind: 'failed' }
+  /**
+   * Die neue Version ist geladen. Android-App (`native`): Sie wird beim nächsten Start aktiv,
+   * `apply` startet sofort neu. Web-App: Die Seite lädt gleich von selbst neu, `apply` sofort.
+   */
+  | { kind: 'ready'; version: string; native: boolean; apply: () => void }
   /** Diese Version braucht eine neue APK. */
   | { kind: 'apk'; version: string };
 
@@ -56,47 +71,68 @@ function readTries(version: string): number {
   }
 }
 
+/** Versionsdatei: Die Android-App fragt GitHub Pages, die Web-App ihren eigenen Server. */
 async function loadPublished(): Promise<PublishedVersion | null> {
-  const res = await fetch(`${PAGES}data/version.json`, { cache: 'no-store' });
+  const base = isNativeApp() ? PAGES : import.meta.env.BASE_URL;
+  const res = await fetch(`${base}data/version.json`, { cache: 'no-store' });
   return res.ok ? parsePublished(await res.json()) : null;
 }
 
 /**
- * Prüft einmal auf eine neue Version und lädt sie, wenn möglich. Fehler (kein Netz,
- * Abbruch beim Laden) bleiben still; der nächste Start versucht es erneut.
+ * Ein in diesem Lauf schon vorgemerktes Paket. Wiederholte Prüfungen laden es nicht noch
+ * einmal und zählen auch keinen weiteren Fehlversuch.
  */
+let prepared: { version: string; update: AppUpdate } | null = null;
+
+async function prepareBundle(running: string, published: PublishedVersion): Promise<AppUpdate> {
+  if (prepared?.version === published.version) return prepared.update;
+
+  const updater = await plugin();
+  const installed = await updater
+    .current()
+    .then((c) => c.native)
+    .catch(() => null);
+  const tries = readTries(published.version);
+  const step = decideUpdate({ running, installed, published, failedTries: tries });
+  if (step === 'none') return { kind: 'current', version: running };
+  if (step === 'apk') return { kind: 'apk', version: published.version };
+
+  // Liegt das Paket von einem früheren Start schon bereit, wird es nicht noch einmal geladen.
+  const known = (await updater.list()).bundles.find((b) => b.version === published.version && b.status !== 'error');
+  const bundle =
+    known ??
+    (await updater.download({
+      url: `${PAGES}bundle/app-${published.version}.zip`,
+      version: published.version,
+    }));
+  await updater.next({ id: bundle.id });
+  localStorage.setItem(TRIES_KEY, JSON.stringify({ version: published.version, tries: tries + 1 }));
+  const update: AppUpdate = {
+    kind: 'ready',
+    version: published.version,
+    native: true,
+    apply: () => void updater.set({ id: bundle.id }).catch(() => undefined),
+  };
+  prepared = { version: published.version, update };
+  return update;
+}
+
+/** Stößt den Service Worker an; er lädt die neue Version und die Seite lädt danach neu. */
+async function prepareWebApp(running: string, published: PublishedVersion): Promise<AppUpdate> {
+  if (!(buildNumber(published.version) > buildNumber(running))) return { kind: 'current', version: running };
+  const registration = await navigator.serviceWorker?.getRegistration();
+  await registration?.update().catch(() => undefined);
+  return { kind: 'ready', version: published.version, native: false, apply: () => window.location.reload() };
+}
+
+/** Prüft auf eine neue Version und lädt sie, wenn möglich. Wirft nicht. */
 export async function checkForUpdate(running: string): Promise<AppUpdate> {
-  if (!isNativeApp() || running === 'dev') return { kind: 'none' };
+  if (Number.isNaN(buildNumber(running))) return { kind: 'unavailable' };
   try {
     const published = await loadPublished();
-    if (!published) return { kind: 'none' };
-
-    const updater = await plugin();
-    const installed = await updater
-      .current()
-      .then((c) => c.native)
-      .catch(() => null);
-    const tries = readTries(published.version);
-    const step = decideUpdate({ running, installed, published, failedTries: tries });
-    if (step === 'none') return { kind: 'none' };
-    if (step === 'apk') return { kind: 'apk', version: published.version };
-
-    // Liegt das Paket von einem früheren Start schon bereit, wird es nicht noch einmal geladen.
-    const known = (await updater.list()).bundles.find((b) => b.version === published.version && b.status !== 'error');
-    const bundle =
-      known ??
-      (await updater.download({
-        url: `${PAGES}bundle/app-${published.version}.zip`,
-        version: published.version,
-      }));
-    await updater.next({ id: bundle.id });
-    localStorage.setItem(TRIES_KEY, JSON.stringify({ version: published.version, tries: tries + 1 }));
-    return {
-      kind: 'ready',
-      version: published.version,
-      apply: () => void updater.set({ id: bundle.id }).catch(() => undefined),
-    };
+    if (!published) return { kind: 'failed' };
+    return await (isNativeApp() ? prepareBundle(running, published) : prepareWebApp(running, published));
   } catch {
-    return { kind: 'none' };
+    return { kind: 'failed' };
   }
 }

@@ -11,8 +11,12 @@ import type { CatalogIndex } from '../data/catalog-index';
 import { FINISH_LABELS } from '../data/model';
 import { exportPiltover, importPiltover, type PiltoverImport } from '../data/piltover';
 import { variantLabel } from '../data/prints';
+import { AUTO_BACKUP_KEEP } from '../data/auto-backup';
+import { autoBackupStatus, backupMark } from './auto-backup';
 import { db } from './db';
-import { APP_VERSION, useApkVersion } from './hooks';
+import { APP_VERSION, useApkVersion, type UpdateCheck } from './hooks';
+import { useLocalStore } from './local-store';
+import { APK_URL } from './updater';
 import {
   canShareFiles,
   isNativeApp,
@@ -53,11 +57,27 @@ interface Pending {
   allowAdd: boolean;
 }
 
-export function FilesView({ index, stock }: { index: CatalogIndex; stock: Map<string, number> }) {
+/** „17.11.2026, 14:32“ in der Zeitzone des Geräts. */
+const formatMoment = (iso: string) =>
+  new Date(iso).toLocaleString('de-DE', { dateStyle: 'medium', timeStyle: 'short' });
+
+export function FilesView({
+  index,
+  stock,
+  updates,
+}: {
+  index: CatalogIndex;
+  stock: Map<string, number>;
+  updates: UpdateCheck;
+}) {
   const [message, setMessage] = useState<{ kind: 'ok' | 'error'; text: ReactNode } | null>(null);
   const [pending, setPending] = useState<Pending | null>(null);
   const [share] = useState(canShareFiles);
   const apkVersion = useApkVersion();
+  const auto = useLocalStore(autoBackupStatus);
+  const mark = useLocalStore(backupMark);
+  const native = isNativeApp();
+  const { update } = updates;
 
   const cards = sum(stock);
   const unknown = [...stock.keys()].filter((id) => !index.skuById.has(id)).length;
@@ -133,6 +153,8 @@ export function FilesView({ index, stock }: { index: CatalogIndex; stock: Map<st
       const file = await buildExport(kind);
       const result = how === 'share' ? await shareFile(file) : await saveFile(file);
       if (result === 'cancelled') return;
+      // Merker für die Erinnerung der Web-App: Der Bestand ist jetzt gesichert.
+      if (kind === 'backup') backupMark.set({ at: new Date().toISOString(), cards });
       setMessage({
         kind: 'ok',
         text: (
@@ -214,10 +236,36 @@ export function FilesView({ index, stock }: { index: CatalogIndex; stock: Map<st
         <p>
           Deine Sammlung liegt nur auf diesem Gerät: <strong>{cards === 1 ? '1 Karte' : `${cards} Karten`}</strong> in{' '}
           {stock.size === 1 ? '1 Fassung' : `${stock.size} Fassungen`}.
-          {unknown > 0 && <> {unknown} Fassungen stehen nicht mehr im Katalog.</>} Lege regelmäßig eine Sicherung an. Mit
-          der Sicherungsdatei überträgst du die Sammlung auch zwischen Handy und PC.
+          {unknown > 0 && <> {unknown} Fassungen stehen nicht mehr im Katalog.</>} Updates der App lassen sie
+          unberührt; verloren geht sie nur, wenn die App deinstalliert wird oder ihre Daten gelöscht werden. Mit der
+          Sicherungsdatei überträgst du die Sammlung auch zwischen Handy und PC.
           {share && ' „Teilen“ schickt die Datei an eine App deiner Wahl, zum Beispiel Google Drive oder E-Mail.'}
         </p>
+        {native ? (
+          <>
+            <p>
+              <strong>Automatische Sicherung:</strong>{' '}
+              {auto?.at
+                ? `zuletzt am ${formatMoment(auto.at)} mit ${count(auto.cards, 'Karte', 'Karten')}, Datei „${auto.file}“.`
+                : 'noch keine. Sie entsteht, sobald die Sammlung Karten enthält.'}{' '}
+              Nach jeder Änderung schreibt die App eine Sicherung in den Ordner „Dokumente/{NATIVE_FOLDER}“ und behält
+              die letzten {AUTO_BACKUP_KEEP} Tage. Der Ordner bleibt auch nach einer Deinstallation stehen.
+            </p>
+            <p>
+              Nach einer Neuinstallation: „Sicherung einspielen“ antippen und in diesem Ordner die neueste Datei
+              „card-scanner-auto-…“ wählen.
+            </p>
+            {auto?.error && (
+              <p className="notice error">Die automatische Sicherung ist zuletzt gescheitert: {auto.error}</p>
+            )}
+          </>
+        ) : (
+          <p>
+            <strong>Letzte Sicherung:</strong>{' '}
+            {mark?.at ? `am ${formatMoment(mark.at)}.` : 'noch keine auf diesem Gerät.'} Im Browser gibt es keine
+            automatische Sicherung; lege nach größeren Änderungen selbst eine an. Die Android-App sichert von selbst.
+          </p>
+        )}
       </section>
 
       {message && (
@@ -286,10 +334,44 @@ export function FilesView({ index, stock }: { index: CatalogIndex; stock: Map<st
         </div>
       </section>
 
-      <p className="version">
-        Version {APP_VERSION} · {isNativeApp() ? 'Android-App' : 'Web-App'}
-        {apkVersion && apkVersion !== APP_VERSION && <> · von selbst aktualisiert (installiert: {apkVersion})</>}
-      </p>
+      <section className="panel">
+        <h2>App-Version</h2>
+        <p>
+          Version {APP_VERSION} · {native ? 'Android-App' : 'Web-App'}
+          {apkVersion && apkVersion !== APP_VERSION && <> · von selbst aktualisiert (installiert: {apkVersion})</>}
+          . Die App sucht beim Start und nach längeren Pausen von selbst nach neuen Versionen.
+        </p>
+        <div className="buttons">
+          <button type="button" disabled={updates.checking} onClick={updates.check}>
+            {updates.checking ? 'Suche läuft …' : 'Nach Updates suchen'}
+          </button>
+          {update.kind === 'ready' && (
+            <button type="button" className="primary" onClick={update.apply}>
+              {update.native ? 'Jetzt neu starten' : 'Jetzt neu laden'}
+            </button>
+          )}
+        </div>
+        {!updates.checking && update.kind !== 'none' && (
+          <p className="update-result" role="status">
+            {update.kind === 'current' && 'Du hast die aktuelle Version.'}
+            {update.kind === 'unavailable' && 'Das ist eine Entwicklungsfassung; für sie gibt es keine Updates.'}
+            {update.kind === 'failed' && 'Die Prüfung ist nicht gelungen. Besteht eine Internetverbindung?'}
+            {update.kind === 'ready' &&
+              (update.native
+                ? `Version ${update.version} ist geladen und wird beim nächsten Öffnen der App aktiv.`
+                : `Version ${update.version} wird geladen; die Seite lädt gleich von selbst neu.`)}
+            {update.kind === 'apk' && (
+              <>
+                Version {update.version} lässt sich nicht von selbst einspielen.{' '}
+                <a className="textlink" href={APK_URL} target="_blank" rel="noopener">
+                  Neue APK laden
+                </a>{' '}
+                und über die vorhandene App installieren; die Sammlung bleibt erhalten.
+              </>
+            )}
+          </p>
+        )}
+      </section>
     </div>
   );
 }

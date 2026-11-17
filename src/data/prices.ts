@@ -42,9 +42,30 @@ export function lookupPrice(
 /** Cardmarket-Sprachkennung für Englisch im Produktlink (`language=1`). */
 export const CARDMARKET_LANGUAGE_EN = 1;
 
-/** Produktseite bei Cardmarket mit Sprachfilter Englisch. */
-export function cardmarketEnglishUrl(productId: number): string {
-  return `https://www.cardmarket.com/en/Riftbound/Products?idProduct=${productId}&language=${CARDMARKET_LANGUAGE_EN}`;
+/**
+ * Produktseite bei Cardmarket mit Sprachfilter Englisch. Mit `foil` zeigt die Seite
+ * zusätzlich nur Foil-Angebote (`isFoil=Y`); Normal und Foil teilen sich dort ein Produkt.
+ */
+export function cardmarketEnglishUrl(productId: number, foil = false): string {
+  const url = `https://www.cardmarket.com/en/Riftbound/Products?idProduct=${productId}&language=${CARDMARKET_LANGUAGE_EN}`;
+  return foil ? `${url}&isFoil=Y` : url;
+}
+
+/**
+ * Cardmarket-Link für eine Fassung, z. B. die gerade gescannte Karte. Hat die gewählte
+ * Fassung kein eigenes Produkt (Metal), gilt das Produkt eines anderen Finishes desselben
+ * Drucks. null, wenn Cardmarket den Druck nicht führt oder die Preise noch laden.
+ */
+export function cardmarketLinkFor(
+  prices: PriceData | null,
+  chosen: { id: string; finish: Finish },
+  printSkus: Array<{ id: string }>,
+): string | null {
+  if (!prices) return null;
+  const own = prices.entries[chosen.id]?.productId;
+  if (own !== undefined) return cardmarketEnglishUrl(own, chosen.finish === 'foil');
+  const other = printSkus.map((s) => prices.entries[s.id]?.productId).find((id) => id !== undefined);
+  return other === undefined ? null : cardmarketEnglishUrl(other);
 }
 
 /** Preis einer Sku in den Tagesdaten der App. `low` ist null, wenn Cardmarket keinen Preis nennt. */

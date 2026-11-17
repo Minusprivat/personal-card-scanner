@@ -33,6 +33,42 @@ function str(v: unknown, what: string): string {
 const strList = (v: unknown, what: string) => arr(v ?? [], what).map((x) => str(x, what));
 const numOrNull = (v: unknown) => (typeof v === 'number' ? v : null);
 
+const DOMAIN_NAMES: Record<string, string> = {
+  fury: 'Fury',
+  calm: 'Calm',
+  mind: 'Mind',
+  body: 'Body',
+  chaos: 'Chaos',
+  order: 'Order',
+};
+
+/**
+ * Übersetzt die Auszeichnung von OpenRift in Klartext: Symbole wie `:rb_might:` werden zu
+ * Wörtern, die Kursiv-Marken um Erklärungen (`_(…)_`) fallen weg. Schlagwörter behalten
+ * ihre eckigen Klammern, z. B. „[Reaction]“.
+ */
+export function plainCardText(markup: string): string {
+  return markup
+    .replace(/:rb_energy_(\d+):/g, '($1)')
+    .replace(/:rb_rune_([a-z]+):/g, (_, name: string) => (DOMAIN_NAMES[name] ? `${DOMAIN_NAMES[name]}-Rune` : 'Rune'))
+    .replace(/:rb_might:/g, 'Might')
+    .replace(/:rb_exhaust:/g, 'Exhaust')
+    .replace(/:rb_([a-z0-9_]+):/g, '$1')
+    .replace(/\[>\]/g, '→')
+    .replace(/_/g, '')
+    .replace(/[ \t]+/g, ' ')
+    .replace(/ ?\n ?/g, '\n')
+    .trim();
+}
+
+/** Text eines Eintrags: Regeltext und, falls vorhanden, der zweite Textkasten. */
+function printingText(p: Obj): string {
+  return [p.printedRulesText, p.printedEffectText]
+    .filter((t): t is string => typeof t === 'string' && t.trim() !== '')
+    .map(plainCardText)
+    .join('\n');
+}
+
 /** Wandelt die Antwort von /api/v1/catalog in das Modell der App. Wirft bei unbekanntem Aufbau. */
 export function parseOpenRiftCatalog(raw: unknown, fetchedAt: string): Catalog {
   const root = obj(raw, 'catalog');
@@ -49,8 +85,23 @@ export function parseOpenRiftCatalog(raw: unknown, fetchedAt: string): Catalog {
     };
   });
 
-  const cards: Card[] = Object.entries(obj(root.cards, 'cards')).map(([id, v]) => {
+  const rawCards = obj(root.cards, 'cards');
+
+  // Der Text steht in der Quelle am Eintrag. Für die Karte gilt der Text des ersten Eintrags
+  // (kleinster Rang), der einen trägt; spätere Drucke kürzen oft nur die Erklärungen.
+  const cardText = new Map<string, { rank: number; text: string }>();
+  for (const v of Object.values(obj(root.printings, 'printings'))) {
+    const p = obj(v, 'printing');
+    const text = printingText(p);
+    if (!text || typeof p.cardId !== 'string') continue;
+    const rank = numOrNull(p.canonicalRank) ?? Number.MAX_SAFE_INTEGER;
+    const known = cardText.get(p.cardId);
+    if (!known || rank < known.rank) cardText.set(p.cardId, { rank, text });
+  }
+
+  const cards: Card[] = Object.entries(rawCards).map(([id, v]) => {
     const c = obj(v, 'card');
+    const text = cardText.get(id)?.text;
     return {
       id,
       slug: str(c.slug, 'card.slug'),
@@ -63,6 +114,7 @@ export function parseOpenRiftCatalog(raw: unknown, fetchedAt: string): Catalog {
       power: numOrNull(c.power),
       keywords: strList(c.keywords, 'card.keywords'),
       tags: strList(c.tags, 'card.tags'),
+      ...(text ? { text } : {}),
     };
   });
 

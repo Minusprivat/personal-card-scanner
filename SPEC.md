@@ -24,8 +24,8 @@ Eine private Web-App für ein Android-Handy erkennt Riftbound-Karten per Kamera,
 | Piltover Archive | Import und Export im Format von Piltover Archive, zum Übernehmen der bestehenden Sammlung und als Sicherung dort |
 | Varianten | Alt-Art, Overnumbered, Special Collection und Promos sind eigene Drucke mit eigenem Bestand und eigenem Preis |
 | Nutzung | Zunächst privat, keine Weitergabe |
-| Android-App | APK aus demselben Code. Speichert Dateien direkt unter „Dokumente/CardScanner“. Seit Version 0.1.11 aktualisiert sie sich selbst: Beim Start prüft sie die Versionsdatei auf GitHub Pages, lädt den neuen Web-Teil im Hintergrund und nutzt ihn ab dem nächsten Öffnen (oder sofort über „Jetzt neu starten“). Nur wenn sich die Android-Hülle geändert hat (Berechtigungen, Bausteine), installiert der Nutzer von Hand eine neue APK; die App sagt das dann. Web-App und APK führen getrennte Bestände; der Umzug läuft über die Sicherungsdatei. Alle Builds tragen dieselbe, öffentlich im Repository liegende Signatur, damit Updates die Sammlung behalten. |
-| Speicherung | Lokal je Gerät, Sicherung als Datei. Handy und PC führen getrennte Bestände; die Sicherungsdatei überträgt die Sammlung von einem Gerät aufs andere. |
+| Android-App | APK aus demselben Code. Speichert Dateien direkt unter „Dokumente/CardScanner“. Seit Version 0.1.11 aktualisiert sie sich selbst: Beim Start, beim Zurückkehren nach mehr als einer Stunde Pause und über den Knopf „Nach Updates suchen“ (Seite „Sicherung“) prüft sie die Versionsdatei auf GitHub Pages, lädt den neuen Web-Teil im Hintergrund und nutzt ihn ab dem nächsten Öffnen (oder sofort über „Jetzt neu starten“). Nur wenn sich die Android-Hülle geändert hat (Berechtigungen, Bausteine), installiert der Nutzer von Hand eine neue APK; die App sagt das dann. Web-App und APK führen getrennte Bestände; der Umzug läuft über die Sicherungsdatei. Alle Builds tragen dieselbe, öffentlich im Repository liegende Signatur, damit Updates die Sammlung behalten. |
+| Speicherung | Lokal je Gerät, Sicherung als Datei. Handy und PC führen getrennte Bestände; die Sicherungsdatei überträgt die Sammlung von einem Gerät aufs andere. Updates lassen die Sammlung unberührt; verloren geht sie nur durch Deinstallation oder „Daten löschen“. Dagegen sichert die Android-App von selbst: Nach jeder Änderung schreibt sie eine Sicherungsdatei nach „Dokumente/CardScanner“ (eine je Tag, die letzten fünf Tage bleiben) und bietet sie bei leerer Sammlung zum Wiederherstellen an. Die Web-App kann das nicht; sie erinnert ab 20 geänderten Karten an eine Sicherung. |
 | Hosting | GitHub Pages, Repository https://github.com/Minusprivat/personal-card-scanner (öffentlich), App unter https://minusprivat.github.io/personal-card-scanner/ |
 | Testmaterial | Fotos echter Karten liefert der Nutzer |
 | Gerät des Nutzers | Motorola Edge 60 Fusion |
@@ -54,12 +54,15 @@ Die erste Version deckt drei Dinge ab: scannen, in einer Sitzung sammeln und aus
 - Am Ende zeigt die Liste jede Zeile mit Häkchen, Menge und Normal/Foil, alles änderbar.
 - „Auswahl übernehmen“ schreibt die angehakten Zeilen in die Sammlung, der Rest wird verworfen.
 - Eine offene Sitzung übersteht das Schließen der App.
+- Die zuletzt gescannte Karte und jede Zeile der Sitzung tragen einen Link „Auf Cardmarket (EN) öffnen“: Produktseite mit Sprachfilter Englisch, bei Foil zusätzlich mit Foil-Filter.
 - **Warnung ab 4 Karten:** Sind von einer Fassung schon 4 Karten vorhanden (Sammlung plus laufende Sitzung), warnt der Scanner beim nächsten Scan dieser Fassung deutlich, zählt die Karte aber trotzdem; „Rückgängig“ nimmt sie wieder heraus. Gezählt wird je Druck: Normal und Foil zusammen, Promo- und Alt-Art-Fassungen jeweils für sich. In der Sitzungsliste sind betroffene Zeilen markiert.
 
 ### Sammlung
 
-- Rasteransicht mit Kartenbildern, Filter nach Set, Variante, Farbe und „besitze ich / fehlt“.
+- Rasteransicht mit Kartenbildern, Filter nach Farbe, Kartentyp, Seltenheit, Variante, Set, Schlagwort und „besitze ich / fehlt“.
+- Jeder Filter erlaubt mehrere Werte, z. B. Calm und Body. Innerhalb eines Filters genügt einer der Werte, verschiedene Filter gelten gemeinsam. Bei Farbe und Schlagwort lässt sich umstellen, dass die Karte alle gewählten Werte tragen muss.
 - Suche nach Name und Kartennummer, Hinzufügen auch ohne Scan.
+- Suche im Kartentext in einem eigenen Feld: „move“ findet alle Karten, auf denen ein Wort mit „move“ beginnt (nicht „remove“). Der Text stammt aus dem Katalog und gilt je Karte, so wie er auf ihrem ersten Druck steht, samt Erklärungen in Klammern. Die Detailseite zeigt ihn an.
 - Die Detailseite zeigt alle Drucke einer Karte nebeneinander, jeweils mit Bestand und Preis.
 - Gesamtwert der Sammlung als Summe aus Low-Preis mal Menge.
 - Export und Import als JSON (Sicherung) und als CSV.

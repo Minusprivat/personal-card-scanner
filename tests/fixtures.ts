@@ -61,8 +61,7 @@ export const rawCatalog = {
     },
   },
   printings: {
-    'p-normal': printing({ finish: 'normal', canonicalRank: 1 }),
-    'p-foil': printing({ finish: 'foil', canonicalRank: 2 }),
+    // Der spätere Druck steht absichtlich zuerst: Für die Karte gilt der Text des kleinsten Rangs.
     'p-alt': printing({
       finish: 'foil',
       shortCode: 'OGN-142a',
@@ -70,7 +69,16 @@ export const rawCatalog = {
       artVariant: 'altart',
       images: [{ imageId: 'img-alt' }],
       canonicalRank: 3,
+      printedRulesText: '[Accelerate]\n[Assault 2]',
     }),
+    'p-normal': printing({
+      finish: 'normal',
+      canonicalRank: 1,
+      printedRulesText:
+        '[Accelerate] _(You may pay :rb_energy_1: :rb_rune_fury: as an additional cost to have me enter ready.)_\n[Assault 2] _(+2 :rb_might: while I’m an attacker.)_',
+      printedEffectText: ':rb_exhaust:: [Reaction] [>] [Add] :rb_rune_rainbow:.',
+    }),
+    'p-foil': printing({ finish: 'foil', canonicalRank: 2 }),
     'p-metal': printing({ finish: 'metal', markers: ['promo'], publicCode: 'OGN-142/298-P', canonicalRank: 4 }),
     'p-token': printing({
       cardId: 'card-2',

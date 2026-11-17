@@ -27,6 +27,11 @@ export function parsePublished(value: unknown): PublishedVersion | null {
   return { version, apk: typeof apk === 'number' && Number.isInteger(apk) && apk > 0 ? apk : null };
 }
 
+/** Kehrt man nach so langer Pause in die App zurück, prüft sie von selbst erneut. */
+export const UPDATE_RECHECK_MS = 60 * 60 * 1000;
+
+export const shouldRecheck = (lastCheckMs: number, nowMs: number): boolean => nowMs - lastCheckMs >= UPDATE_RECHECK_MS;
+
 /** So oft darf dieselbe Version nachgeladen werden, ohne dass sie danach läuft. */
 export const MAX_UPDATE_TRIES = 2;
 

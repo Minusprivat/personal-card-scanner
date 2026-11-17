@@ -13,8 +13,8 @@ import {
 } from '../src/data/backup';
 import { buildIndex } from '../src/data/catalog-index';
 import { parseCsv, toCsv } from '../src/data/csv';
-import { filterPrints, NO_FILTERS } from '../src/data/filter';
-import type { Catalog } from '../src/data/model';
+import { activeFilterCount, filterPrints, hasFilters, NO_FILTERS } from '../src/data/filter';
+import type { Card, Catalog } from '../src/data/model';
 import {
   derivePiltoverTemplate,
   exportPiltover,
@@ -33,10 +33,17 @@ const catalog: Catalog = {
     { id: 'set-sfd', code: 'SFD', name: 'Spiritforged', type: 'main', releasedAt: '2026-02-13' },
   ],
   cards: [
-    card('c-scorcher', 'Blazing Scorcher', ['fury']),
-    card('c-darius', 'Darius, Trifarian', ['fury']),
-    card('c-teemo', 'Teemo, Strategist', ['mind']),
-    card('c-camp', 'Trifarian War Camp', []),
+    card('c-scorcher', 'Blazing Scorcher', ['fury'], {
+      keywords: ['Ganking'],
+      text: '[Ganking] (I can move from battlefield to battlefield.)\nI enter ready.',
+    }),
+    card('c-darius', 'Darius, Trifarian', ['fury', 'order'], {
+      superTypes: ['champion'],
+      keywords: ['Assault', 'Ganking'],
+      text: '[Assault 2] (+2 Might while I’m an attacker.)\nWhen I attack, remove a buff from an enemy unit.',
+    }),
+    card('c-teemo', 'Teemo, Strategist', ['mind'], { text: 'When you play me, moves are free this turn.' }),
+    card('c-camp', 'Trifarian War Camp', [], { types: ['battlefield'] }),
     card('c-kaisa', 'Kai’Sa, Survivor', ['fury']),
     card('c-buff', 'Buff', []),
   ],
@@ -66,8 +73,21 @@ const catalog: Catalog = {
   ],
 };
 
-function card(id: string, name: string, domains: string[]) {
-  return { id, slug: id, name, types: ['unit'], superTypes: [], domains, energy: 1, might: 1, power: null, keywords: [], tags: [] };
+function card(id: string, name: string, domains: string[], over: Partial<Card> = {}): Card {
+  return {
+    id,
+    slug: id,
+    name,
+    types: ['unit'],
+    superTypes: [],
+    domains,
+    energy: 1,
+    might: 1,
+    power: null,
+    keywords: [],
+    tags: [],
+    ...over,
+  };
 }
 
 const index = buildIndex(catalog);
@@ -125,12 +145,61 @@ describe('Suche und Filter', () => {
   });
 
   it('filtert nach Set, Variante und Farbe', () => {
-    expect(find({ setId: 'set-sfd' })).toEqual(['teemo-on', 'teemo-signed']);
-    expect(find({ variant: 'altart' })).toEqual(['teemo-alt']);
-    expect(find({ variant: 'signed' })).toEqual(['teemo-signed']);
-    expect(find({ variant: 'stamp' })).toEqual(['scorcher-nexus', 'darius-release']);
-    expect(find({ variant: 'metal' })).toEqual(['darius-release']);
-    expect(find({ domain: 'mind' })).toEqual(['teemo-alt', 'teemo-on', 'teemo-signed']);
+    expect(find({ setIds: ['set-sfd'] })).toEqual(['teemo-on', 'teemo-signed']);
+    expect(find({ variants: ['altart'] })).toEqual(['teemo-alt']);
+    expect(find({ variants: ['signed'] })).toEqual(['teemo-signed']);
+    expect(find({ variants: ['stamp'] })).toEqual(['scorcher-nexus', 'darius-release']);
+    expect(find({ variants: ['metal'] })).toEqual(['darius-release']);
+    expect(find({ domains: ['mind'] })).toEqual(['teemo-alt', 'teemo-on', 'teemo-signed']);
+  });
+
+  it('nimmt bei Mehrfachauswahl jede Karte, auf die einer der Werte zutrifft', () => {
+    expect(find({ variants: ['altart', 'signed'] })).toEqual(['teemo-alt', 'teemo-signed']);
+    expect(find({ domains: ['mind', 'order'] })).toEqual(['darius-f', 'darius-release', 'teemo-alt', 'teemo-on', 'teemo-signed']);
+    expect(find({ setIds: ['set-ogn', 'set-sfd'] })).toHaveLength(index.prints.length);
+  });
+
+  it('verlangt auf Wunsch alle gewählten Farben', () => {
+    expect(find({ domains: ['fury', 'order'], allDomains: true })).toEqual(['darius-f', 'darius-release']);
+    expect(find({ domains: ['fury', 'mind'], allDomains: true })).toEqual([]);
+  });
+
+  it('verknüpft verschiedene Filter mit „und“', () => {
+    expect(find({ domains: ['fury', 'mind'], variants: ['stamp'] })).toEqual(['scorcher-nexus', 'darius-release']);
+    expect(find({ domains: ['mind'], setIds: ['set-ogn'] })).toEqual(['teemo-alt']);
+  });
+
+  it('filtert nach Kartentyp, Obertyp und Seltenheit', () => {
+    expect(find({ types: ['battlefield'] })).toEqual(['camp', 'camp-big']);
+    expect(find({ types: ['champion'] })).toEqual(['darius-f', 'darius-release']);
+    expect(find({ types: ['battlefield', 'champion'] })).toHaveLength(4);
+    expect(find({ rarities: ['common'] })).toEqual(['scorcher-n', 'scorcher-nexus', 'buff-v2']);
+  });
+
+  it('filtert nach Schlagwörtern, wahlweise nach allen gewählten', () => {
+    expect(find({ keywords: ['Ganking'] })).toEqual(['scorcher-n', 'scorcher-nexus', 'darius-f', 'darius-release']);
+    expect(find({ keywords: ['Ganking', 'Assault'], allKeywords: true })).toEqual(['darius-f', 'darius-release']);
+  });
+
+  it('sucht im Kartentext am Wortanfang: „move“ findet „moves“, aber nicht „remove“', () => {
+    expect(find({ text: 'move' })).toEqual(['scorcher-n', 'scorcher-nexus', 'teemo-alt', 'teemo-on', 'teemo-signed']);
+    expect(find({ text: 'Move' })).toEqual(find({ text: 'move' }));
+    expect(find({ text: 'remove' })).toEqual(['darius-f', 'darius-release']);
+  });
+
+  it('verlangt im Kartentext jedes Suchwort und verbindet die Textsuche mit den anderen Filtern', () => {
+    expect(find({ text: 'enter ready' })).toEqual(['scorcher-n', 'scorcher-nexus']);
+    expect(find({ text: 'move', domains: ['mind'] })).toEqual(['teemo-alt', 'teemo-on', 'teemo-signed']);
+    expect(find({ text: 'move', query: 'scorcher' })).toEqual(['scorcher-n', 'scorcher-nexus']);
+    // Karten ohne Text passen zu keiner Textsuche.
+    expect(find({ text: 'trifarian' })).toEqual([]);
+  });
+
+  it('zählt die gesetzten Filter für den Knopf „Filter“', () => {
+    expect(activeFilterCount(NO_FILTERS)).toBe(0);
+    expect(activeFilterCount({ ...NO_FILTERS, domains: ['calm', 'body'], owned: 'owned', query: 'jinx' })).toBe(3);
+    expect(hasFilters({ ...NO_FILTERS, text: ' move ' })).toBe(true);
+    expect(hasFilters({ ...NO_FILTERS, query: '  ' })).toBe(false);
   });
 
   it('filtert nach „besitze ich“ und „fehlt“ auf Ebene des Drucks', () => {

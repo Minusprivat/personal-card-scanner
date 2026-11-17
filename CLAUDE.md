@@ -9,6 +9,7 @@ Private Riftbound-Sammlungs-App als PWA für Android und PC, zusätzlich als And
 - **M2 Preise:** gebaut; Abnahme offen (drei tägliche Läufe in Folge, zehn Stichproben aus `docs/m2-stichproben.md` durch den Nutzer).
 - **M3 Erkennung:** vorbereitet (Fingerabdrücke, Umrisssuche, Abgleich, Prüfprogramme). Die Kartennummer wird gelesen (Tesseract). Mit 43 Fotos des Nutzers: 93,0 % richtige Karte vorn, kein falscher Selbstzähler ([docs/m3-fotos.md](docs/m3-fotos.md)); Ziel 95 % / 99 % noch nicht erreicht. Offen: Karten in Hüllen auf dunklem Untergrund, Geschwindigkeit auf dem Handy.
 - **M4 Scan-Sitzung:** gebaut (Scan-Seite, Sitzungsliste, Übernahme). Offen: Test mit echter Kamera durch den Nutzer; die Schwellen in `src/scan/tracker.ts` sind geschätzt und nach seinen Rückmeldungen einzustellen.
+- **Wünsche vom 17.11.2026:** gebaut: automatische Sicherung, Knopf „Nach Updates suchen“, Cardmarket-Link im Scanner, Filter mit Mehrfachauswahl, Suche im Kartentext. Im Browser geprüft; offen ist die Prüfung auf dem Handy, vor allem der automatischen Sicherung und des Wiederherstellens (laufen nur in der Android-App). Der Foil-Filter im Cardmarket-Link (`isFoil=Y`) ist nicht an der echten Seite geprüft.
 
 Repository: https://github.com/Minusprivat/personal-card-scanner · Web-App: https://minusprivat.github.io/personal-card-scanner/ · APK: https://github.com/Minusprivat/personal-card-scanner/releases/download/apk/card-scanner.apk
 
@@ -51,8 +52,9 @@ Commits in diesem Repository nutzen die GitHub-noreply-Adresse (lokale Git-Einst
   - `model.ts`: Card, Print (Druck), Sku (Druck + Finish), `CatalogSource`.
   - `prints.ts`: fasst Skus zu Drucken zusammen.
   - `prices.ts`: Cardmarket Low je Finish, „kein Preis“ statt 0 €.
-  - `catalog-index.ts`, `filter.ts`: Nachschlagetabellen, Suche und Filter.
+  - `catalog-index.ts`, `filter.ts`: Nachschlagetabellen, Suche und Filter (Mehrfachauswahl, Suche im Kartentext am Wortanfang).
   - `csv.ts`, `backup.ts`, `piltover.ts`: Sicherung (JSON), Tabelle (CSV), Piltover-Archive-Format.
+  - `auto-backup.ts`: Dateinamen, Aufräumen und Erinnerung der automatischen Sicherung.
 - `src/scan/` – Kartenerkennung, von App und Prüfprogrammen gemeinsam genutzt.
   - `fingerprint.ts`: Bild-Fingerabdruck (Perceptual Hash über ganze Karte und Motiv). Bei Änderungen `FP_VERSION` erhöhen und alle Fingerabdrücke neu berechnen.
   - `matcher.ts`: sucht die ähnlichsten Katalogbilder.
@@ -70,10 +72,12 @@ Commits in diesem Repository nutzen die GitHub-noreply-Adresse (lokale Git-Einst
 - `src/app/` – React-Oberfläche. `db.ts` hält den Bestand in IndexedDB (Dexie).
   - `save.ts`: Speichern und Teilen je Umgebung (Android-App, PC-Browser, Handy-Browser).
   - `catalog-loader.ts`: lädt Katalog, Preise und Fingerabdrücke; die Android-App holt sie von GitHub Pages und merkt sie sich.
-  - `updater.ts`: Selbst-Update der Android-App mit `@capgo/capacitor-updater` im Handbetrieb; die Entscheidung (nichts, Web-Teil nachladen, neue APK nötig) steht in `src/data/update.ts`.
+  - `updater.ts`: Update-Prüfung beim Start, nach einer Stunde Pause und über „Nach Updates suchen“. Android-App: Selbst-Update mit `@capgo/capacitor-updater` im Handbetrieb; Web-App: stößt den Service Worker an. Die Entscheidung (nichts, Web-Teil nachladen, neue APK nötig) steht in `src/data/update.ts`.
+  - `auto-backup.ts`: Die Android-App schreibt nach jeder Änderung eine Sicherung nach „Dokumente/CardScanner“ und bietet sie bei leerer Sammlung zum Wiederherstellen an; die Web-App merkt sich nur die letzte Sicherung von Hand und erinnert daran.
+  - `local-store.ts`: kleine Merker in localStorage, auf die die Oberfläche hört.
 - `android/` – Capacitor-Projekt. `app/debug.p12` ist der feste, bewusst öffentliche Signaturschlüssel; nicht ersetzen, sonst lassen sich Updates nur nach Deinstallation (Datenverlust) einspielen.
 - `scripts/build-data/` – Node-Datenskript.
-  - `sources/openrift.ts`: einzige Stelle, die das OpenRift-Format kennt.
+  - `sources/openrift.ts`: einzige Stelle, die das OpenRift-Format kennt; übersetzt auch die Auszeichnung des Kartentexts in Klartext (`Card.text`).
   - `sources/cardmarket.ts`: Cardmarket-Preisdatei.
   - `http.ts`: Abruf mit User-Agent, Zwischenspeicher und ETag.
   - `stats.ts`, `report.ts`: Auswertung und M0-Bericht.
@@ -99,5 +103,8 @@ Commits in diesem Repository nutzen die GitHub-noreply-Adresse (lokale Git-Einst
 - Der Update-Baustein bleibt im Handbetrieb (`autoUpdate: false`, `statsUrl: ''` in `capacitor.config.ts`): Er darf nur GitHub Pages ansprechen, nie die Server seines Herstellers.
 - Änderungen an `android/`, `capacitor.config.ts` oder `package.json` verlangen vom Nutzer eine neue APK von Hand. Solche Änderungen deshalb sammeln und im Abschlussbericht ausdrücklich nennen.
 - Web-App und APK müssen beide funktionieren: Plattform-Unterschiede gehören hinter `isNativeApp()` in `save.ts` oder `catalog-loader.ts`.
+- Die automatische Sicherung schreibt nie eine leere Sammlung: Eine leere Sammlung ist oft gerade der Verlustfall und darf die vorhandenen Sicherungen nicht verdrängen.
+- `Card.text` ist wahlfrei: Die Android-App startet mit dem zuletzt gespeicherten Katalog, der das Feld noch nicht tragen muss.
+- `data/version.json` läuft nicht über den Zwischenspeicher des Service Workers (`vite.config.ts`), sonst sähe die Update-Prüfung einen alten Stand.
 - Stimmt eine Annahme der SPEC nicht: anhalten, Abweichung mit Vorschlag nennen, dann weiterbauen.
 - Jeder Meilenstein endet mit Tests für die Abnahmekriterien und einer Prüfanleitung fürs Handy; danach auf Freigabe warten.
