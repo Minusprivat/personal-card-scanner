@@ -161,6 +161,22 @@ describe('OpenRift-Quelle', () => {
     expect(catalog.cards.find((c) => c.id === 'card-2')).not.toHaveProperty('text');
   });
 
+  it('nennt die Herkunft der Promos mit ihrem ganzen Weg, ohne den Oberbegriff „Tournament“', () => {
+    expect(catalog.channels).toMatchObject({
+      'regional-qualifier-ogn-best-of': 'Regional Qualifier › Origins Season › Best Of',
+      'nexus-ogn': 'Nexus Night › Origins',
+      bundle: 'Worlds 2026 Bundle',
+    });
+    expect(catalog.markerLabels).toEqual({ promo: 'Promo', summoner: 'Summoner Circle' });
+  });
+
+  it('kommt ohne Angaben zur Herkunft zurecht', () => {
+    const { distributionChannels: _channels, markers: _markers, ...bare } = rawCatalog;
+    const parsed = parseOpenRiftCatalog(bare, '');
+    expect(parsed.channels).toEqual({});
+    expect(parsed.markerLabels).toEqual({});
+  });
+
   it('übersetzt die Auszeichnung der Quelle in Klartext', () => {
     expect(plainCardText('[Equip :rb_rune_calm:] _(:rb_rune_calm:: Attach this to a unit you control.)_')).toBe(
       '[Equip Calm-Rune] (Calm-Rune: Attach this to a unit you control.)',

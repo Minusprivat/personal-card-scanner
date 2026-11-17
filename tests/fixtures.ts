@@ -30,6 +30,20 @@ export function sku(over: Partial<Sku> = {}): Sku {
 
 /** Ausschnitt im Format von OpenRift `/api/v1/catalog`. */
 export const rawCatalog = {
+  markers: [
+    { id: 'm-1', slug: 'promo', label: 'Promo', description: 'Promo stamp around the rarity symbol' },
+    { id: 'm-2', slug: 'summoner', label: 'Summoner Circle', description: null },
+  ],
+  // Vertriebswege bilden einen Baum; die Reihenfolge der Einträge ist beliebig.
+  distributionChannels: [
+    { id: 'ch-best', slug: 'regional-qualifier-ogn-best-of', label: 'Best Of', kind: 'event', parentId: 'ch-season' },
+    { id: 'ch-tournament', slug: 'tournament', label: 'Tournament', kind: 'event', parentId: null },
+    { id: 'ch-rq', slug: 'regional-qualifier', label: 'Regional Qualifier', kind: 'event', parentId: 'ch-tournament' },
+    { id: 'ch-season', slug: 'regional-qualifier-ogn', label: 'Origins Season', kind: 'event', parentId: 'ch-rq' },
+    { id: 'ch-nexus', slug: 'nexus-night', label: 'Nexus Night', kind: 'event', parentId: null },
+    { id: 'ch-nexus-ogn', slug: 'nexus-ogn', label: 'Origins', kind: 'event', parentId: 'ch-nexus' },
+    { id: 'ch-bundle', slug: 'bundle', label: 'Worlds 2026 Bundle', kind: 'product', parentId: null },
+  ],
   sets: [
     { id: 'set-ogn', slug: 'OGN', name: 'Origins', setType: 'main', releases: { EN: { releasedAt: '2025-10-31' } } },
     { id: 'set-sgn', slug: 'SGN', name: 'Secret Garden', setType: 'supplemental', releases: {} },

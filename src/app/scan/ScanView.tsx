@@ -3,6 +3,7 @@ import { imageUrl, printCode, printImageId, printName, type CatalogIndex } from 
 import { FINISH_LABELS, type Print } from '../../data/model';
 import { cardmarketLinkFor, formatEuro, type PriceData } from '../../data/prices';
 import { COPY_LIMIT, copyCount, copyTotal, variantLabel } from '../../data/prints';
+import { compactOrigins, printOrigins } from '../../data/versions';
 import {
   decideByNumber,
   defaultSku,
@@ -480,6 +481,12 @@ function PrintChoice({ index, print, onPick }: { index: CatalogIndex; print: Pri
         <strong>{printName(index, print)}</strong>
         <span>{printCode(print)}</span>
         <span>{variantLabel(print.skus[0]!)}</span>
+        {/* Die Herkunft unterscheidet Promos, die sonst gleich aussehen. */}
+        {compactOrigins(printOrigins(print, index.catalog))
+          .slice(0, 2)
+          .map((origin) => (
+            <span key={origin}>{origin}</span>
+          ))}
       </span>
     </button>
   );

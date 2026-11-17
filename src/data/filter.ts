@@ -1,5 +1,6 @@
 import { printCode, printName, type CatalogIndex } from './catalog-index';
 import type { Card, Print } from './model';
+import { isPromo } from './versions';
 
 export type Variant = 'standard' | 'altart' | 'overnumbered' | 'signed' | 'stamp' | 'metal';
 export type OwnedFilter = 'all' | 'owned' | 'missing';
@@ -46,7 +47,7 @@ export const VARIANT_LABELS: Record<Variant, string> = {
   altart: 'Alt-Art',
   overnumbered: 'Overnumbered',
   signed: 'Signiert',
-  stamp: 'Promo / Stempel',
+  stamp: 'Promo',
   metal: 'Metal',
 };
 
@@ -118,7 +119,7 @@ function matchesVariant(print: Print, v: Variant): boolean {
     case 'signed':
       return s.isSigned;
     case 'stamp':
-      return s.markers.length > 0;
+      return isPromo(s);
     case 'metal':
       return print.skus.some((x) => x.finish === 'metal' || x.finish === 'metal-deluxe');
   }
@@ -189,4 +190,41 @@ export function filterPrints(
     }
     return matchesCardText(index, card, textTokens);
   });
+}
+
+/** Eine Karte in der Übersicht der Sammlung, mit allen ihren Fassungen. */
+export interface CardGroup {
+  cardId: string;
+  card: Card | undefined;
+  /** Alle Drucke der Karte, unabhängig von den Filtern. */
+  prints: Print[];
+  /** Die Drucke, auf die die Filter zutreffen; der erste liefert das Bild der Kachel. */
+  matched: Print[];
+}
+
+/**
+ * Filtert wie `filterPrints`, fasst das Ergebnis aber je Karte zusammen. Eine Karte erscheint,
+ * sobald eine ihrer Fassungen zu den Filtern passt.
+ *
+ * „Besitze ich“ und „Fehlt mir“ beziehen sich auf die passenden Fassungen: Mit dem Filter
+ * „Promo“ zeigt „Fehlt mir“ die Karten, von deren Promos keine in der Sammlung liegt.
+ */
+export function filterCards(index: CatalogIndex, filters: Filters, stock: Map<string, number>): CardGroup[] {
+  const groups = new Map<string, CardGroup>();
+  for (const print of filterPrints(index, { ...filters, owned: 'all' }, () => 0)) {
+    const group = groups.get(print.cardId);
+    if (group) group.matched.push(print);
+    else {
+      groups.set(print.cardId, {
+        cardId: print.cardId,
+        card: index.cardById.get(print.cardId),
+        prints: index.printsByCardId.get(print.cardId) ?? [print],
+        matched: [print],
+      });
+    }
+  }
+  const all = [...groups.values()];
+  if (filters.owned === 'all') return all;
+  const owns = (g: CardGroup) => g.matched.some((p) => p.skus.some((s) => (stock.get(s.id) ?? 0) > 0));
+  return all.filter((g) => owns(g) === (filters.owned === 'owned'));
 }

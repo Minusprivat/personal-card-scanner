@@ -4,6 +4,7 @@ import { DOMAIN_LABELS } from '../data/filter';
 import { FINISH_LABELS, type Print, type Sku } from '../data/model';
 import { cardmarketEnglishUrl, formatDay, formatEuro, type PriceData } from '../data/prices';
 import { variantLabel } from '../data/prints';
+import { compactOrigins, countByKind, isPromo, kindSummary, originLabels } from '../data/versions';
 import { db } from './db';
 
 function close() {
@@ -37,6 +38,7 @@ export function CardDetail({
   }, []);
 
   const total = prints.reduce((sum, p) => sum + p.skus.reduce((n, s) => n + (stock.get(s.id) ?? 0), 0), 0);
+  const kinds = kindSummary(countByKind(prints, stock));
 
   return (
     <div className="detail" role="dialog" aria-modal="true" aria-label={card?.name ?? 'Karte'}>
@@ -54,6 +56,16 @@ export function CardDetail({
           )}
         </div>
       </div>
+
+      {kinds.length > 0 && (
+        <p className="detail-kinds">
+          {kinds.map((k) => (
+            <span key={k.kind} className={k.qty > 0 ? 'kind has' : 'kind'}>
+              {k.label}: {k.qty}
+            </span>
+          ))}
+        </p>
+      )}
 
       {card?.text && <p className="card-text">{card.text}</p>}
 
@@ -82,6 +94,12 @@ function PrintCard({
   const imageId = printImageId(print);
   const first = print.skus[0]!;
   const productId = print.skus.map((s) => prices?.entries[s.id]?.productId).find((id) => id !== undefined);
+  // Woher die Fassung stammt, z. B. „Nexus Night › Origins“ oder „Worlds 2026 Bundle“.
+  // Ein Eintrag kann Karten verschiedener Herkunft bündeln (Foil vom Release Event, Metal von
+  // der Prize Wall, Metal Deluxe als Best Of); dann steht die Herkunft bei jedem Finish.
+  const perSku = print.skus.map((sku) => compactOrigins(originLabels(sku, index.catalog)));
+  const shared = perSku.every((list) => list.join('|') === perSku[0]!.join('|'));
+  const origins = shared ? perSku[0]! : [];
   return (
     <section className="print">
       <div className="art large">
@@ -91,12 +109,28 @@ function PrintCard({
           <span className="noimg">kein Bild</span>
         )}
       </div>
-      <h2>{printCode(print)}</h2>
+      <h2>
+        {printCode(print)}
+        {isPromo(first) && <span className="kind-badge">Promo</span>}
+      </h2>
       <p className="sub">
         {index.setById.get(print.setId)?.name} · {variantLabel(first)}
       </p>
-      {print.skus.map((sku) => (
-        <Counter key={sku.id} sku={sku} qty={stock.get(sku.id) ?? 0} price={priceText(prices, sku)} />
+      {origins.length > 0 && (
+        <ul className="origins" aria-label="Herkunft">
+          {origins.map((origin) => (
+            <li key={origin}>{origin}</li>
+          ))}
+        </ul>
+      )}
+      {print.skus.map((sku, i) => (
+        <Counter
+          key={sku.id}
+          sku={sku}
+          qty={stock.get(sku.id) ?? 0}
+          price={priceText(prices, sku)}
+          origins={shared ? [] : perSku[i]!}
+        />
       ))}
       {prices && (
         <p className="price">
@@ -125,12 +159,17 @@ function priceText(prices: PriceData | null, sku: Sku): string {
   return entry.trend === null ? low : `${low} · Trend ${formatEuro(entry.trend)}`;
 }
 
-function Counter({ sku, qty, price }: { sku: Sku; qty: number; price: string }) {
+function Counter({ sku, qty, price, origins }: { sku: Sku; qty: number; price: string; origins: string[] }) {
   const label = FINISH_LABELS[sku.finish];
   return (
     <div className="counter">
       <span className="counter-label">
         {label}
+        {origins.map((origin) => (
+          <small key={origin} className="origin">
+            {origin}
+          </small>
+        ))}
         {price && <small>{price}</small>}
       </span>
       <button

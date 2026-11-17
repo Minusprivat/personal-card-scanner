@@ -11,7 +11,8 @@ Private Riftbound-Sammlungs-App als PWA für Android und PC, zusätzlich als And
 - **M4 Scan-Sitzung:** gebaut (Scan-Seite, Sitzungsliste, Übernahme). Offen: Test mit echter Kamera durch den Nutzer; die Schwellen in `src/scan/tracker.ts` sind geschätzt und nach seinen Rückmeldungen einzustellen.
 - **Wünsche vom 17.11.2026:** gebaut: automatische Sicherung, Knopf „Nach Updates suchen“, Cardmarket-Link im Scanner, Filter mit Mehrfachauswahl, Suche im Kartentext. Im Browser geprüft; offen ist die Prüfung auf dem Handy, vor allem der automatischen Sicherung und des Wiederherstellens (laufen nur in der Android-App). Der Foil-Filter im Cardmarket-Link (`isFoil=Y`) ist nicht an der echten Seite geprüft.
 - **Punktezähler:** gebaut (1 gegen 1 bis 8, Conquer/Hold), dazu Zeitlimit mit Overtime und Expertenmodus (wer beginnt, „Pass turn“, Zugnummer, History). Im Browser geprüft; offen: Prüfung auf dem Handy (Bildschirm bleibt an, Vibration, Bedienung zu zweit).
-- **Selbst-Update:** ab 0.1.15 repariert (Hänger beim Laden des Bausteins, Prüfsumme). Offen: Nachweis auf dem Handy, dass eine Version nach 0.1.15 von selbst geladen wird.
+- **Selbst-Update:** ab 0.1.15 repariert (Hänger beim Laden des Bausteins, Prüfsumme). Vom Nutzer am 17.11.2026 auf dem Handy bestätigt: Die Version wechselt von selbst.
+- **Sammlung nach Karten:** Die Übersicht zeigt eine Kachel je Karte mit dem Bestand je Art (Normal, Foil, Promo, Metal); die Kartenansicht nennt die Herkunft jeder Sonderausgabe. Offen: Für rund 200 Cardmarket-Produkte (Metal, Radiance-Promos, T1-, K/DA- und Worlds-2026-Bundle) liefert OpenRift noch keine Verknüpfung; diese Fassungen stehen im Katalog, haben aber keinen Preis und keinen Cardmarket-Link. Vorschlag liegt beim Nutzer: eigene Zuordnung über die Produktliste von Cardmarket, nur bei eindeutigen Treffern.
 
 Repository: https://github.com/Minusprivat/personal-card-scanner · Web-App: https://minusprivat.github.io/personal-card-scanner/ · APK: https://github.com/Minusprivat/personal-card-scanner/releases/download/apk/card-scanner.apk
 
@@ -54,9 +55,10 @@ Commits in diesem Repository nutzen die GitHub-noreply-Adresse (lokale Git-Einst
   - `model.ts`: Card, Print (Druck), Sku (Druck + Finish), `CatalogSource`.
   - `prints.ts`: fasst Skus zu Drucken zusammen.
   - `prices.ts`: Cardmarket Low je Finish, „kein Preis“ statt 0 €.
-  - `catalog-index.ts`, `filter.ts`: Nachschlagetabellen, Suche und Filter (Mehrfachauswahl, Suche im Kartentext am Wortanfang).
+  - `catalog-index.ts`, `filter.ts`: Nachschlagetabellen, Suche und Filter (Mehrfachauswahl, Suche im Kartentext am Wortanfang). `filterCards` fasst das Ergebnis je Karte zusammen.
   - `csv.ts`, `backup.ts`, `piltover.ts`: Sicherung (JSON), Tabelle (CSV), Piltover-Archive-Format.
   - `auto-backup.ts`: Dateinamen, Aufräumen und Erinnerung der automatischen Sicherung.
+  - `versions.ts`: Art einer Fassung (Normal, Foil, Promo, Metal), Zählung je Karte und lesbare Herkunft der Sonderausgaben.
   - `score.ts`: Punktezähler. Die Partie ist eine Liste von Ereignissen mit Zeitpunkt (Punkt, Korrektur, „Pass turn“, Beginn); Stand, Sieg bei 8, Spieldauer, Zeitlimit mit Overtime, Züge und Verlauf werden daraus berechnet, nichts davon wird eigens gespeichert.
 - `src/scan/` – Kartenerkennung, von App und Prüfprogrammen gemeinsam genutzt.
   - `fingerprint.ts`: Bild-Fingerabdruck (Perceptual Hash über ganze Karte und Motiv). Bei Änderungen `FP_VERSION` erhöhen und alle Fingerabdrücke neu berechnen.
@@ -108,6 +110,8 @@ Commits in diesem Repository nutzen die GitHub-noreply-Adresse (lokale Git-Einst
 - Änderungen an `android/`, `capacitor.config.ts` oder `package.json` verlangen vom Nutzer eine neue APK von Hand. Solche Änderungen deshalb sammeln und im Abschlussbericht ausdrücklich nennen.
 - Web-App und APK müssen beide funktionieren: Plattform-Unterschiede gehören hinter `isNativeApp()` in `save.ts` oder `catalog-loader.ts`.
 - Die automatische Sicherung schreibt nie eine leere Sammlung: Eine leere Sammlung ist oft gerade der Verlustfall und darf die vorhandenen Sicherungen nicht verdrängen.
+- Ein Druck (`Print`) kann mehrere Sonderausgaben bündeln, weil er nur nach Nummer, Variante und Stempel gruppiert: z. B. Foil vom Release Event, Metal von der Prize Wall und Metal Deluxe als Best Of. Herkunft und Art deshalb immer an der Sku ablesen (`versions.ts`), nicht am Druck.
+- `Catalog.channels` und `Catalog.markerLabels` sind wahlfrei wie `Card.text`.
 - `Card.text` ist wahlfrei: Die Android-App startet mit dem zuletzt gespeicherten Katalog, der das Feld noch nicht tragen muss.
 - `data/version.json` läuft nicht über den Zwischenspeicher des Service Workers (`vite.config.ts`), sonst sähe die Update-Prüfung einen alten Stand.
 - Fehler der Update-Prüfung nie still verschlucken: Die Meldung steht unter „Nach Updates suchen“ (`reason` in `updater.ts`).

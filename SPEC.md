@@ -70,7 +70,9 @@ Die erste Version deckt drei Dinge ab: scannen, in einer Sitzung sammeln und aus
 
 ### Sammlung
 
-- Rasteransicht mit Kartenbildern, Filter nach Farbe, Kartentyp, Seltenheit, Variante, Set, Schlagwort und „besitze ich / fehlt“.
+- Rasteransicht mit einer Kachel je Karte (nicht je Druck). Unter dem Bild steht der Bestand je Art, z. B. „Normal: 2 | Foil: 0 | Promo: 1“; Arten, die es von der Karte nicht gibt, fehlen. Normal und Foil sind Karten aus den Boostern (auch Alt-Art, Overnumbered, signiert), Promo ist alles mit Stempel oder besonderer Herkunft (Events, Turniere, Bundles), Metal und Metal Deluxe zählen als „Metal“ für sich.
+- Antippen öffnet die Karte mit allen Fassungen. Bei Sonderausgaben steht die Herkunft dabei, z. B. „Nexus Night › Origins“, „Worlds 2026 Bundle“ oder „Regional Qualifier › Best Of (Origins, Spiritforged)“; bündelt ein Eintrag mehrere Sonderausgaben, steht sie bei jedem Finish.
+- Filter nach Farbe, Kartentyp, Seltenheit, Variante, Set, Schlagwort und „besitze ich / fehlt“. Eine Karte erscheint, sobald eine ihrer Fassungen passt; „besitze ich / fehlt“ bezieht sich auf die passenden Fassungen.
 - Jeder Filter erlaubt mehrere Werte, z. B. Calm und Body. Innerhalb eines Filters genügt einer der Werte, verschiedene Filter gelten gemeinsam. Bei Farbe und Schlagwort lässt sich umstellen, dass die Karte alle gewählten Werte tragen muss.
 - Suche nach Name und Kartennummer, Hinzufügen auch ohne Scan.
 - Suche im Kartentext in einem eigenen Feld: „move“ findet alle Karten, auf denen ein Wort mit „move“ beginnt (nicht „remove“). Der Text stammt aus dem Katalog und gilt je Karte, so wie er auf ihrem ersten Druck steht, samt Erklärungen in Klammern. Die Detailseite zeigt ihn an.

@@ -104,6 +104,14 @@ export interface Catalog {
   sets: CardSet[];
   cards: Card[];
   skus: Sku[];
+  /**
+   * Herkunft von Promos und Sonderausgaben: Kürzel des Vertriebswegs (`Sku.channels`) →
+   * lesbarer Name, z. B. "Nexus Night › Origins" oder "Worlds 2026 Bundle". Fehlt in älteren
+   * Katalogständen, die die App noch gespeichert hat.
+   */
+  channels?: Record<string, string>;
+  /** Stempel: Kürzel (`Sku.markers`) → Name, z. B. "summoner" → "Summoner Circle". */
+  markerLabels?: Record<string, string>;
 }
 
 /** Verknüpfung einer Sku mit einem Cardmarket-Produkt. */

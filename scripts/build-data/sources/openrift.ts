@@ -69,6 +69,38 @@ function printingText(p: Obj): string {
     .join('\n');
 }
 
+/**
+ * Namen der Vertriebswege. Die Quelle führt sie als Baum (Turnier › Regional Qualifier ›
+ * Origins Season › Best Of); daraus wird ein lesbarer Pfad je Kürzel. Der Oberbegriff
+ * „Tournament“ fällt weg, er sagt nichts über die Karte.
+ */
+function channelNames(raw: unknown): Record<string, string> {
+  const list = Array.isArray(raw) ? raw.filter((c): c is Obj => typeof c === 'object' && c !== null) : [];
+  const byId = new Map(list.map((c) => [c.id, c]));
+  const path = (c: Obj, depth = 0): string[] => {
+    const parent = typeof c.parentId === 'string' ? byId.get(c.parentId) : undefined;
+    const label = typeof c.label === 'string' ? c.label : String(c.slug);
+    // Die Tiefe begrenzt den Aufstieg, falls die Quelle einmal einen Kreis enthält.
+    return parent && depth < 8 ? [...path(parent, depth + 1), label] : [label];
+  };
+  const names: Record<string, string> = {};
+  for (const c of list) {
+    if (typeof c.slug !== 'string') continue;
+    const parts = path(c);
+    names[c.slug] = (parts.length > 1 && parts[0] === 'Tournament' ? parts.slice(1) : parts).join(' › ');
+  }
+  return names;
+}
+
+function markerNames(raw: unknown): Record<string, string> {
+  const names: Record<string, string> = {};
+  for (const m of Array.isArray(raw) ? raw : []) {
+    const marker = m as Obj | null;
+    if (marker && typeof marker.slug === 'string' && typeof marker.label === 'string') names[marker.slug] = marker.label;
+  }
+  return names;
+}
+
 /** Wandelt die Antwort von /api/v1/catalog in das Modell der App. Wirft bei unbekanntem Aufbau. */
 export function parseOpenRiftCatalog(raw: unknown, fetchedAt: string): Catalog {
   const root = obj(raw, 'catalog');
@@ -162,6 +194,8 @@ export function parseOpenRiftCatalog(raw: unknown, fetchedAt: string): Catalog {
     sets,
     cards,
     skus,
+    channels: channelNames(root.distributionChannels),
+    markerLabels: markerNames(root.markers),
   };
 }
 

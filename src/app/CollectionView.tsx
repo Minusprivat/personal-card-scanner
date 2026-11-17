@@ -1,21 +1,22 @@
 import { useDeferredValue, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { imageUrl, printCode, printImageId, printName, type CatalogIndex } from '../data/catalog-index';
+import { imageUrl, printImageId, printName, type CatalogIndex } from '../data/catalog-index';
 import {
   activeFilterCount,
   DOMAIN_LABELS,
-  filterPrints,
+  filterCards,
   hasFilters,
   NO_FILTERS,
   RARITY_LABELS,
   TYPE_LABELS,
   VARIANT_LABELS,
+  type CardGroup,
   type Filters,
   type OwnedFilter,
   type Variant,
 } from '../data/filter';
 import { FINISH_LABELS, type Print } from '../data/model';
 import { collectionValue, formatDay, formatEuro, type CollectionValue, type PriceData } from '../data/prices';
-import { variantLabel } from '../data/prints';
+import { countByKind, kindSummary } from '../data/versions';
 import { cardHref } from './hooks';
 
 const PAGE = 60;
@@ -31,8 +32,11 @@ export function stockLine(print: Print, stock: Map<string, number>): string {
   return print.skus.map((s) => `${FINISH_LABELS[s.finish]}: ${stock.get(s.id) ?? 0}`).join(' · ');
 }
 
-const ownedOf = (print: Print, stock: Map<string, number>) =>
-  print.skus.reduce((sum, s) => sum + (stock.get(s.id) ?? 0), 0);
+const NO_STOCK = new Map<string, number>();
+
+/** Karten im Bestand über alle Fassungen einer Karte. */
+const ownedOf = (group: CardGroup, stock: Map<string, number>) =>
+  group.prints.reduce((sum, p) => sum + p.skus.reduce((n, s) => n + (stock.get(s.id) ?? 0), 0), 0);
 
 export function CollectionView({
   index,
@@ -51,11 +55,8 @@ export function CollectionView({
   const sentinel = useRef<HTMLDivElement>(null);
 
   // Der Besitz-Filter hängt am Bestand; ohne ihn soll ein Zählerklick die Liste nicht neu filtern.
-  const stockForFilter = applied.owned === 'all' ? null : stock;
-  const prints = useMemo(
-    () => filterPrints(index, applied, (p) => (stockForFilter ? ownedOf(p, stockForFilter) : 0)),
-    [index, applied, stockForFilter],
-  );
+  const stockForFilter = applied.owned === 'all' ? NO_STOCK : stock;
+  const cards = useMemo(() => filterCards(index, applied, stockForFilter), [index, applied, stockForFilter]);
 
   const set = <K extends keyof Filters>(key: K, value: Filters[K]) => {
     setFilters((f) => ({ ...f, [key]: value }));
@@ -85,7 +86,7 @@ export function CollectionView({
     );
     io.observe(el);
     return () => io.disconnect();
-  }, [prints]);
+  }, [cards]);
 
   // Nur Werte anbieten, die im Katalog vorkommen; die Reihenfolge geben die Tabellen vor.
   const options = useMemo(() => {
@@ -101,7 +102,7 @@ export function CollectionView({
       hasText: cards.some((c) => c.text),
     };
   }, [index]);
-  const ownedPrints = useMemo(() => prints.filter((p) => ownedOf(p, stock) > 0).length, [prints, stock]);
+  const ownedCards = useMemo(() => cards.filter((g) => ownedOf(g, stock) > 0).length, [cards, stock]);
   const value = useMemo(() => collectionValue(stock, prices), [stock, prices]);
   const activeCount = activeFilterCount(filters);
 
@@ -211,7 +212,7 @@ export function CollectionView({
       <ValueLine value={value} prices={prices} />
 
       <p className="count">
-        {prints.length} Drucke, davon {ownedPrints} im Besitz
+        {cards.length === 1 ? '1 Karte' : `${cards.length} Karten`}, davon {ownedCards} im Besitz
         {hasFilters(filters) && (
           <button type="button" className="link" onClick={() => (setFilters(NO_FILTERS), setLimit(PAGE))}>
             Filter zurücksetzen
@@ -219,16 +220,16 @@ export function CollectionView({
         )}
       </p>
 
-      {prints.length === 0 ? (
+      {cards.length === 0 ? (
         <p className="notice">Keine Karte passt zu diesen Filtern.</p>
       ) : (
         <div className="grid">
-          {prints.slice(0, limit).map((print) => (
-            <Tile key={print.key} index={index} print={print} stock={stock} />
+          {cards.slice(0, limit).map((group) => (
+            <Tile key={group.cardId} index={index} group={group} stock={stock} />
           ))}
         </div>
       )}
-      {limit < prints.length && <div ref={sentinel} className="sentinel" />}
+      {limit < cards.length && <div ref={sentinel} className="sentinel" />}
     </>
   );
 }
@@ -294,13 +295,19 @@ function ValueLine({ value, prices }: { value: CollectionValue; prices: PriceDat
   );
 }
 
-function Tile({ index, print, stock }: { index: CatalogIndex; print: Print; stock: Map<string, number> }) {
-  const imageId = printImageId(print);
-  const owned = ownedOf(print, stock);
-  const name = printName(index, print);
-  const variant = variantLabel(print.skus[0]!);
+/**
+ * Eine Karte mit allen ihren Fassungen: „Normal: 2 | Foil: 0 | Promo: 1“ zählt die Karten im
+ * Bestand je Art. Arten, die es von der Karte nicht gibt, fehlen. Das Bild zeigt die erste
+ * Fassung, die zu den Filtern passt.
+ */
+function Tile({ index, group, stock }: { index: CatalogIndex; group: CardGroup; stock: Map<string, number> }) {
+  const shown = group.matched[0]!;
+  const imageId = printImageId(shown);
+  const owned = ownedOf(group, stock);
+  const kinds = kindSummary(countByKind(group.prints, stock));
+  const versions = group.prints.reduce((n, p) => n + p.skus.length, 0);
   return (
-    <a className={owned ? 'tile owned' : 'tile'} href={cardHref(print.cardId)}>
+    <a className={owned ? 'tile owned' : 'tile'} href={cardHref(group.cardId)}>
       <div className="art">
         {imageId ? (
           <img src={imageUrl(index.catalog, imageId, 'thumb')} alt="" loading="lazy" decoding="async" />
@@ -309,12 +316,18 @@ function Tile({ index, print, stock }: { index: CatalogIndex; print: Print; stoc
         )}
         {owned > 0 && <span className="badge">{owned}</span>}
       </div>
-      <div className="tile-name">{name}</div>
-      <div className="tile-meta">
-        {printCode(print)}
-        {variant !== 'Standard' && <> · {variant}</>}
+      <div className="tile-name">{group.card?.name ?? printName(index, shown)}</div>
+      <div className="tile-kinds">
+        {/* Der Trennstrich steht vor jedem Eintrag; am Zeilenanfang schneidet ihn die Kachel ab. */}
+        <div>
+          {kinds.map((k) => (
+            <span key={k.kind} className={k.qty > 0 ? 'kind has' : 'kind'}>
+              {k.label}: {k.qty}
+            </span>
+          ))}
+        </div>
       </div>
-      <div className="tile-stock">{stockLine(print, stock)}</div>
+      <div className="tile-meta">{versions === 1 ? '1 Fassung' : `${versions} Fassungen`}</div>
     </a>
   );
 }

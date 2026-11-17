@@ -335,6 +335,98 @@ button.link {
   color: var(--accent);
 }
 
+/* Bestand je Art unter der Karte: „Normal: 2 | Foil: 0 | Promo: 1“. */
+.tile-kinds {
+  overflow: hidden;
+  color: var(--muted);
+}
+
+/* Jeder Eintrag beginnt mit einem Trennstrich; der Einzug nach links versteckt den am Zeilenanfang. */
+.tile-kinds > div {
+  display: flex;
+  flex-wrap: wrap;
+  margin-left: -11px;
+}
+
+.tile-kinds .kind::before {
+  content: '|';
+  display: inline-block;
+  width: 11px;
+  color: var(--border);
+  font-weight: 400;
+  text-align: center;
+}
+
+.kind {
+  white-space: nowrap;
+}
+
+.kind.has {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.tile-meta {
+  font-size: 0.72rem;
+}
+
+/* Kartenansicht: dieselbe Zählung als Zeile unter dem Namen. */
+.detail-kinds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-width: 1400px;
+  margin: 0 auto 12px;
+}
+
+.detail-kinds .kind {
+  padding: 4px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.detail-kinds .kind.has {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.kind-badge {
+  margin-left: 8px;
+  padding: 1px 8px;
+  background: color-mix(in srgb, var(--conquer) 20%, transparent);
+  border-radius: 999px;
+  color: var(--conquer);
+  font-size: 0.72rem;
+  font-weight: 700;
+  vertical-align: middle;
+}
+
+/* Herkunft einer Fassung: Event, Turnier oder Bundle. */
+.origins {
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--text);
+  font-size: 0.82rem;
+}
+
+.origins li {
+  padding: 2px 0 2px 10px;
+  border-left: 2px solid var(--conquer);
+}
+
+.origins li + li {
+  margin-top: 3px;
+}
+
+/* Herkunft eines einzelnen Finishs, wenn ein Eintrag mehrere Sonderausgaben bündelt. */
+.counter-label small.origin {
+  color: var(--conquer);
+}
+
 .sentinel {
   height: 1px;
 }
