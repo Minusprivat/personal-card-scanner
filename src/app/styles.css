@@ -1145,9 +1145,9 @@ button:disabled {
   align-items: center;
   justify-content: center;
   gap: 2px;
-  min-width: 58px;
+  min-width: 54px;
   min-height: 48px;
-  padding: 4px 8px;
+  padding: 4px 6px;
   background: transparent;
   border: 1px solid transparent;
   border-radius: 12px;
@@ -1221,10 +1221,278 @@ button:disabled {
   }
 }
 
+/* Expertenmodus: Wer am Zug ist, hebt sich ab und gibt mit „Pass turn“ weiter. */
+.side.active {
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--p) 60%, transparent);
+}
+
+.side.waiting {
+  opacity: 0.7;
+}
+
+.turn-badge {
+  margin-left: 8px;
+  padding: 2px 8px;
+  background: var(--p);
+  border-radius: 999px;
+  color: var(--bg);
+  font-size: 0.7rem;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  white-space: nowrap;
+}
+
+.pass {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  background: var(--p);
+  border: 0;
+  border-radius: 999px;
+  color: var(--bg);
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.08s;
+}
+
+.pass:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.pass .icon {
+  width: 20px;
+  height: 20px;
+  stroke-width: 2.4;
+}
+
+/* Zeitlimit: Uhr als Startknopf, danach Restzeit; nach Ablauf „Overtime“. */
+.score-bar button.score-clock.start {
+  min-width: 96px;
+  padding: 4px 10px;
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.score-clock.start strong {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.score-clock.start .icon {
+  width: 16px;
+  height: 16px;
+  fill: var(--accent);
+  stroke: var(--accent);
+}
+
+.score-clock.start span {
+  color: var(--accent);
+}
+
+.score-bar.overtime {
+  background: color-mix(in srgb, var(--danger) 13%, var(--surface));
+  border-color: var(--danger);
+}
+
+.score-bar.overtime .score-clock strong,
+.score-bar.overtime .score-clock span {
+  color: var(--danger);
+}
+
+.score-bar button span {
+  white-space: nowrap;
+}
+
+.score-bar.overtime.running .score-clock span {
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  animation: overtime-pulse 0.9s ease-in-out infinite alternate;
+}
+
+@keyframes overtime-pulse {
+  to {
+    opacity: 0.45;
+  }
+}
+
+/* Fläche über dem Zähler: Wer beginnt, Optionen, History. */
+.sheet-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(8, 12, 20, 0.74);
+  backdrop-filter: blur(3px);
+}
+
+.sheet {
+  width: min(100%, 460px);
+  max-height: 100%;
+  overflow: auto;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.sheet h2 {
+  margin: 0 0 10px;
+  font-size: 1.15rem;
+}
+
+.sheet p {
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.sheet p strong {
+  color: var(--text);
+}
+
+.sheet .buttons {
+  margin-top: 14px;
+}
+
+.starter {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.starter-pick {
+  --p: var(--accent);
+  min-height: 72px;
+  background: color-mix(in srgb, var(--p) 18%, var(--surface));
+  border: 1px solid var(--p);
+  border-radius: 16px;
+  color: var(--p);
+  font-size: 1.05rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.starter-pick.player-2 {
+  --p: var(--player-2);
+}
+
+.option {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+
+.option input {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  margin: 2px 0 0;
+  accent-color: var(--accent);
+}
+
+.option span {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.option strong {
+  display: block;
+  color: var(--text);
+  font-size: 0.95rem;
+}
+
+.chip.custom {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: text;
+}
+
+.chip.custom.on {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.chip.custom input {
+  width: 68px;
+  min-height: 26px;
+  padding: 2px 6px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  text-align: center;
+}
+
+.history {
+  width: 100%;
+  margin-bottom: 8px;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.history th {
+  padding: 4px 5px;
+  border-bottom: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-align: left;
+}
+
+.history td {
+  padding: 6px 5px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.history .who {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.history tr.player-2 .who {
+  color: var(--player-2);
+}
+
+.history .dot {
+  display: inline-grid;
+  width: 20px;
+  height: 20px;
+  margin-right: 6px;
+  font-size: 0.7rem;
+  vertical-align: middle;
+}
+
+.history .ot {
+  margin-left: 5px;
+  padding: 0 5px;
+  background: color-mix(in srgb, var(--danger) 22%, transparent);
+  border-radius: 6px;
+  color: var(--danger);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .ring-score strong,
   .seg.last,
-  .side.won .seg.on {
+  .side.won .seg.on,
+  .score-bar.overtime.running .score-clock span {
     animation: none;
   }
 }

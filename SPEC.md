@@ -63,7 +63,9 @@ Die erste Version deckt drei Dinge ab: scannen, in einer Sitzung sammeln und aus
 - Standardmodus 1 gegen 1: Beide Spieler beginnen bei 0, wer zuerst 8 Punkte hat, gewinnt. Danach nimmt die Partie keine Punkte mehr an.
 - Je Spieler zwei große Knöpfe „Conquer“ und „Hold“; jedes Antippen zählt einen Punkt. „−1“ nimmt den letzten Punkt des Spielers zurück, „Zurück“ den letzten Schritt überhaupt, auch den Siegpunkt.
 - Ein Ring mit acht Feldern zeigt den Stand, darunter steht der Verlauf der Punkte (C/H). Die Leiste in der Mitte zeigt die Spieldauer ab dem ersten Punkt.
-- „Gegenüber“ stellt die obere Hälfte auf den Kopf, damit zwei Spieler am selben Handy sitzen können; im Querformat stehen beide Hälften nebeneinander.
+- **Zeitlimit** (unter „Optionen“): aus, 15, 30, 45, 60 oder eigene Minuten (1 bis 180). Mit Limit zeigt die Uhr die Restzeit; sie startet mit dem ersten Punkt, durch Antippen der Uhr oder – im Expertenmodus – sobald feststeht, wer beginnt. Ist die Zeit abgelaufen, steht dort „Overtime“ samt überzogener Zeit, das Handy vibriert einmal, und die Partie läuft weiter.
+- **Expertenmodus** (unter „Optionen“): Vor der Partie wird festgelegt, wer beginnt (oder ausgelost). Wer am Zug ist, ist hervorgehoben und hat den Knopf „Pass turn“; jedes Antippen gibt den Zug an den anderen und zählt die Zugnummer weiter. Punkten dürfen jederzeit beide. „History“ zeigt je Punkt Spielzeit, Zug, Spieler, Art und Stand; Punkte in der Overtime sind markiert. Wird der Modus mitten in einer Partie eingeschaltet, fragt die App, wer gerade am Zug ist.
+- „Gegenüber sitzen“ (unter „Optionen“) stellt die obere Hälfte auf den Kopf, damit zwei Spieler am selben Handy sitzen können; im Querformat stehen beide Hälften nebeneinander.
 - Die laufende Partie übersteht das Schließen der App; der Bildschirm bleibt an, solange der Zähler offen ist.
 
 ### Sammlung

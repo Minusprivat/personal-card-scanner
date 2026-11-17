@@ -10,7 +10,7 @@ Private Riftbound-Sammlungs-App als PWA für Android und PC, zusätzlich als And
 - **M3 Erkennung:** vorbereitet (Fingerabdrücke, Umrisssuche, Abgleich, Prüfprogramme). Die Kartennummer wird gelesen (Tesseract). Mit 43 Fotos des Nutzers: 93,0 % richtige Karte vorn, kein falscher Selbstzähler ([docs/m3-fotos.md](docs/m3-fotos.md)); Ziel 95 % / 99 % noch nicht erreicht. Offen: Karten in Hüllen auf dunklem Untergrund, Geschwindigkeit auf dem Handy.
 - **M4 Scan-Sitzung:** gebaut (Scan-Seite, Sitzungsliste, Übernahme). Offen: Test mit echter Kamera durch den Nutzer; die Schwellen in `src/scan/tracker.ts` sind geschätzt und nach seinen Rückmeldungen einzustellen.
 - **Wünsche vom 17.11.2026:** gebaut: automatische Sicherung, Knopf „Nach Updates suchen“, Cardmarket-Link im Scanner, Filter mit Mehrfachauswahl, Suche im Kartentext. Im Browser geprüft; offen ist die Prüfung auf dem Handy, vor allem der automatischen Sicherung und des Wiederherstellens (laufen nur in der Android-App). Der Foil-Filter im Cardmarket-Link (`isFoil=Y`) ist nicht an der echten Seite geprüft.
-- **Punktezähler:** gebaut (1 gegen 1 bis 8, Conquer/Hold). Im Browser geprüft; offen: Prüfung auf dem Handy (Bildschirm bleibt an, Vibration, Bedienung zu zweit).
+- **Punktezähler:** gebaut (1 gegen 1 bis 8, Conquer/Hold), dazu Zeitlimit mit Overtime und Expertenmodus (wer beginnt, „Pass turn“, Zugnummer, History). Im Browser geprüft; offen: Prüfung auf dem Handy (Bildschirm bleibt an, Vibration, Bedienung zu zweit).
 - **Selbst-Update:** ab 0.1.15 repariert (Hänger beim Laden des Bausteins, Prüfsumme). Offen: Nachweis auf dem Handy, dass eine Version nach 0.1.15 von selbst geladen wird.
 
 Repository: https://github.com/Minusprivat/personal-card-scanner · Web-App: https://minusprivat.github.io/personal-card-scanner/ · APK: https://github.com/Minusprivat/personal-card-scanner/releases/download/apk/card-scanner.apk
@@ -57,7 +57,7 @@ Commits in diesem Repository nutzen die GitHub-noreply-Adresse (lokale Git-Einst
   - `catalog-index.ts`, `filter.ts`: Nachschlagetabellen, Suche und Filter (Mehrfachauswahl, Suche im Kartentext am Wortanfang).
   - `csv.ts`, `backup.ts`, `piltover.ts`: Sicherung (JSON), Tabelle (CSV), Piltover-Archive-Format.
   - `auto-backup.ts`: Dateinamen, Aufräumen und Erinnerung der automatischen Sicherung.
-  - `score.ts`: Punktezähler (Partie als Liste von Ereignissen, Sieg bei 8, Zurücknehmen, Spieldauer).
+  - `score.ts`: Punktezähler. Die Partie ist eine Liste von Ereignissen mit Zeitpunkt (Punkt, Korrektur, „Pass turn“, Beginn); Stand, Sieg bei 8, Spieldauer, Zeitlimit mit Overtime, Züge und Verlauf werden daraus berechnet, nichts davon wird eigens gespeichert.
 - `src/scan/` – Kartenerkennung, von App und Prüfprogrammen gemeinsam genutzt.
   - `fingerprint.ts`: Bild-Fingerabdruck (Perceptual Hash über ganze Karte und Motiv). Bei Änderungen `FP_VERSION` erhöhen und alle Fingerabdrücke neu berechnen.
   - `matcher.ts`: sucht die ähnlichsten Katalogbilder.
