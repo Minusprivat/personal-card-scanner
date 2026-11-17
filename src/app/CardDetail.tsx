@@ -42,28 +42,29 @@ export function CardDetail({
 
   return (
     <div className="detail" role="dialog" aria-modal="true" aria-label={card?.name ?? 'Karte'}>
-      <div className="detail-head">
+      {/* Bleibt beim Scrollen oben stehen: Zurück, Name und Bestand je Art. */}
+      <header className="detail-head">
         <button type="button" className="back" onClick={close}>
           ← Zurück
         </button>
-        <div>
+        <div className="detail-title">
           <h1>{card?.name ?? 'Unbekannte Karte'}</h1>
-          {card && (
-            <p className="sub">
-              {[...card.types, ...card.domains.map((d) => DOMAIN_LABELS[d] ?? d)].join(' · ')} · {prints.length}{' '}
-              {prints.length === 1 ? 'Druck' : 'Drucke'} · {total} im Besitz
+          {kinds.length > 0 && (
+            <p className="detail-kinds">
+              {kinds.map((k) => (
+                <span key={k.kind} className={k.qty > 0 ? 'kind has' : 'kind'}>
+                  {k.label}: {k.qty}
+                </span>
+              ))}
             </p>
           )}
         </div>
-      </div>
+      </header>
 
-      {kinds.length > 0 && (
-        <p className="detail-kinds">
-          {kinds.map((k) => (
-            <span key={k.kind} className={k.qty > 0 ? 'kind has' : 'kind'}>
-              {k.label}: {k.qty}
-            </span>
-          ))}
+      {card && (
+        <p className="sub detail-meta">
+          {[...card.types, ...card.domains.map((d) => DOMAIN_LABELS[d] ?? d)].join(' · ')} · {prints.length}{' '}
+          {prints.length === 1 ? 'Druck' : 'Drucke'} · {total} im Besitz
         </p>
       )}
 

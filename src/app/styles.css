@@ -374,18 +374,17 @@ button.link {
 .detail-kinds {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  max-width: 1400px;
-  margin: 0 auto 12px;
+  gap: 4px 6px;
+  margin: 4px 0 0;
 }
 
 .detail-kinds .kind {
-  padding: 4px 12px;
+  padding: 1px 10px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 999px;
   color: var(--muted);
-  font-size: 0.9rem;
+  font-size: 0.8rem;
 }
 
 .detail-kinds .kind.has {
@@ -438,21 +437,43 @@ button.link {
   z-index: 10;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: calc(12px + env(safe-area-inset-top)) 12px calc(32px + env(safe-area-inset-bottom));
+  /* Den Abstand nach oben trägt der feststehende Kopf. */
+  padding: 0 12px calc(32px + env(safe-area-inset-bottom));
   background: var(--bg);
 }
 
+/* Kopf der Kartenansicht: bleibt beim Scrollen oben stehen wie die Kopfzeile der Sammlung. */
 .detail-head {
+  position: sticky;
+  top: 0;
+  z-index: 2;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 12px;
-  max-width: 1400px;
-  margin: 0 auto 16px;
+  margin: 0 -12px 12px;
+  /* Auf breiten Bildschirmen fluchtet der Inhalt mit den Karten darunter (höchstens 1400px). */
+  padding: calc(8px + env(safe-area-inset-top)) max(12px, calc(50% - 688px)) 8px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.detail-title {
+  flex: 1;
+  min-width: 0;
 }
 
 .detail h1 {
   margin: 0;
-  font-size: 1.4rem;
+  overflow: hidden;
+  font-size: 1.2rem;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.detail-meta {
+  max-width: 1400px;
+  margin: 0 auto 12px;
 }
 
 .sub {
