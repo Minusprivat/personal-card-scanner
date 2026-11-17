@@ -168,12 +168,14 @@ export type Route =
   | { page: 'collection' }
   | { page: 'files' }
   | { page: 'scan' }
+  | { page: 'score' }
   | { page: 'card'; cardId: string };
 
 function parseHash(hash: string): Route {
   const parts = hash.replace(/^#\/?/, '').split('/');
   if (parts[0] === 'datei') return { page: 'files' };
   if (parts[0] === 'scan') return { page: 'scan' };
+  if (parts[0] === 'punkte') return { page: 'score' };
   if (parts[0] === 'karte' && parts[1]) return { page: 'card', cardId: decodeURIComponent(parts[1]) };
   return { page: 'collection' };
 }

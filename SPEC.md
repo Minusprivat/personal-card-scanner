@@ -57,6 +57,15 @@ Die erste Version deckt drei Dinge ab: scannen, in einer Sitzung sammeln und aus
 - Die zuletzt gescannte Karte und jede Zeile der Sitzung tragen einen Link „Auf Cardmarket (EN) öffnen“: Produktseite mit Sprachfilter Englisch, bei Foil zusätzlich mit Foil-Filter.
 - **Warnung ab 4 Karten:** Sind von einer Fassung schon 4 Karten vorhanden (Sammlung plus laufende Sitzung), warnt der Scanner beim nächsten Scan dieser Fassung deutlich, zählt die Karte aber trotzdem; „Rückgängig“ nimmt sie wieder heraus. Gezählt wird je Druck: Normal und Foil zusammen, Promo- und Alt-Art-Fassungen jeweils für sich. In der Sitzungsliste sind betroffene Zeilen markiert.
 
+### Punktezähler
+
+- Eigener Eintrag „Punkte“ in der Kopfzeile; braucht weder Katalog noch Netz.
+- Standardmodus 1 gegen 1: Beide Spieler beginnen bei 0, wer zuerst 8 Punkte hat, gewinnt. Danach nimmt die Partie keine Punkte mehr an.
+- Je Spieler zwei große Knöpfe „Conquer“ und „Hold“; jedes Antippen zählt einen Punkt. „−1“ nimmt den letzten Punkt des Spielers zurück, „Zurück“ den letzten Schritt überhaupt, auch den Siegpunkt.
+- Ein Ring mit acht Feldern zeigt den Stand, darunter steht der Verlauf der Punkte (C/H). Die Leiste in der Mitte zeigt die Spieldauer ab dem ersten Punkt.
+- „Gegenüber“ stellt die obere Hälfte auf den Kopf, damit zwei Spieler am selben Handy sitzen können; im Querformat stehen beide Hälften nebeneinander.
+- Die laufende Partie übersteht das Schließen der App; der Bildschirm bleibt an, solange der Zähler offen ist.
+
 ### Sammlung
 
 - Rasteransicht mit Kartenbildern, Filter nach Farbe, Kartentyp, Seltenheit, Variante, Set, Schlagwort und „besitze ich / fehlt“.

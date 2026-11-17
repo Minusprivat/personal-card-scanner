@@ -19,6 +19,7 @@ import {
 import { useLocalStore } from './local-store';
 import { isNativeApp } from './save';
 import { ScanView } from './scan/ScanView';
+import { ScoreView } from './score/ScoreView';
 import { APK_URL } from './updater';
 
 const DISMISSED_UPDATE = 'dismissedUpdate';
@@ -61,6 +62,9 @@ export function App() {
           </a>
           <a href="#/datei" aria-current={route.page === 'files' ? 'page' : undefined}>
             Sicherung
+          </a>
+          <a href="#/punkte" aria-current={route.page === 'score' ? 'page' : undefined}>
+            Punkte
           </a>
         </nav>
       </header>
@@ -121,6 +125,9 @@ export function App() {
         </p>
       )}
 
+      {/* Der Punktezähler braucht weder Katalog noch Netz und liegt über dem Rest der Seite. */}
+      {route.page === 'score' && <ScoreView />}
+
       {catalog.status === 'loading' && <p className="notice">Katalog wird geladen …</p>}
       {catalog.status === 'error' && (
         <p className="notice error">
@@ -131,7 +138,7 @@ export function App() {
       {catalog.status === 'ready' && (
         <>
           {/* Die Sammlung bleibt im Hintergrund erhalten, damit Filter und Position nicht verloren gehen. */}
-          <main hidden={route.page === 'files' || route.page === 'scan'}>
+          <main hidden={route.page === 'files' || route.page === 'scan' || route.page === 'score'}>
             <CollectionView index={catalog.index} stock={stock} prices={prices} />
           </main>
           {route.page === 'files' && (
