@@ -54,9 +54,10 @@ jobs:
       - name: Versionsdatei für das Selbst-Update der Android-App
         run: |
           huelle=$(git rev-list --count "$(git log -1 --format=%H -- android capacitor.config.ts package.json)")
-          # APKs vor 0.1.14 können sich nicht selbst aktualisieren: Sie schicken dem Update-Baustein
-          # keine Prüfsumme mit, und er lehnt das Paket dann ab. Sie brauchen einmal eine neue APK.
-          if [ "$huelle" -lt 14 ]; then huelle=14; fi
+          # APKs vor 0.1.15 können sich nicht selbst aktualisieren: Ihre Update-Prüfung bleibt beim
+          # Laden des Update-Bausteins hängen, und bis 0.1.13 fehlte zudem die Prüfsumme des Pakets.
+          # Sie brauchen einmal eine neue APK von Hand.
+          if [ "$huelle" -lt 15 ]; then huelle=15; fi
           echo "APK_MIN=$huelle" >> "$GITHUB_ENV"
           echo "{\"version\":\"$APP_VERSION\",\"apk\":$huelle}" > public/data/version.json
           cat public/data/version.json

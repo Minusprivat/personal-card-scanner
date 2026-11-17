@@ -39,7 +39,34 @@ export type AppUpdate =
   /** Diese Version braucht eine neue APK. */
   | { kind: 'apk'; version: string };
 
-const plugin = async () => (await import('@capgo/capacitor-updater')).CapacitorUpdater;
+/**
+ * Lädt den Update-Baustein. Er steckt absichtlich in einem Objekt: Ein Capacitor-Baustein
+ * antwortet auf jeden Namen mit einer Funktion, auch auf `then`. Gäbe eine async-Funktion ihn
+ * direkt zurück, hielte JavaScript ihn für ein Promise und wartete für immer auf ihn. Genau
+ * daran hing die Update-Prüfung bis Version 0.1.14 (tests/updater.test.ts prüft das).
+ */
+const loadUpdater = async () => ({ updater: (await import('@capgo/capacitor-updater')).CapacitorUpdater });
+
+/** Antwortet ein Schritt nicht in dieser Zeit, gilt die Prüfung als gescheitert statt endlos zu laufen. */
+const STEP_TIMEOUT_MS = 15_000;
+/** Das Paket hat rund 9 MB; auch über Mobilfunk muss das in dieser Zeit ankommen. */
+const DOWNLOAD_TIMEOUT_MS = 5 * 60_000;
+
+function within<T>(promise: Promise<T>, what: string, ms = STEP_TIMEOUT_MS): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`${what} antwortet nicht.`)), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (err: unknown) => {
+        clearTimeout(timer);
+        reject(err instanceof Error ? err : new Error(String(err)));
+      },
+    );
+  });
+}
 
 /**
  * Meldet dem Update-Baustein, dass die App läuft. Bleibt die Meldung nach einem Update aus,
@@ -47,8 +74,8 @@ const plugin = async () => (await import('@capgo/capacitor-updater')).CapacitorU
  */
 export function markAppReady(): void {
   if (!isNativeApp()) return;
-  void plugin()
-    .then((updater) => updater.notifyAppReady())
+  void loadUpdater()
+    .then(({ updater }) => updater.notifyAppReady())
     .catch(() => undefined);
 }
 
@@ -56,7 +83,8 @@ export function markAppReady(): void {
 export async function installedApkVersion(): Promise<string | null> {
   if (!isNativeApp()) return null;
   try {
-    return (await (await plugin()).current()).native || null;
+    const { updater } = await loadUpdater();
+    return (await within(updater.current(), 'Der Update-Baustein')).native || null;
   } catch {
     return null;
   }
@@ -74,7 +102,10 @@ function readTries(version: string): number {
 /** Versionsdatei: Die Android-App fragt GitHub Pages, die Web-App ihren eigenen Server. */
 async function loadPublished(): Promise<PublishedVersion | null> {
   const base = isNativeApp() ? PAGES : import.meta.env.BASE_URL;
-  const res = await fetch(`${base}data/version.json`, { cache: 'no-store' });
+  const res = await fetch(`${base}data/version.json`, {
+    cache: 'no-store',
+    signal: AbortSignal.timeout(STEP_TIMEOUT_MS),
+  });
   return res.ok ? parsePublished(await res.json()) : null;
 }
 
@@ -87,9 +118,8 @@ let prepared: { version: string; update: AppUpdate } | null = null;
 async function prepareBundle(running: string, published: PublishedVersion): Promise<AppUpdate> {
   if (prepared?.version === published.version) return prepared.update;
 
-  const updater = await plugin();
-  const installed = await updater
-    .current()
+  const { updater } = await within(loadUpdater(), 'Der Update-Baustein');
+  const installed = await within(updater.current(), 'Der Update-Baustein')
     .then((c) => c.native)
     .catch(() => null);
   const tries = readTries(published.version);
@@ -98,17 +128,22 @@ async function prepareBundle(running: string, published: PublishedVersion): Prom
   if (step === 'apk') return { kind: 'apk', version: published.version };
 
   // Liegt das Paket von einem früheren Start schon bereit, wird es nicht noch einmal geladen.
-  const known = (await updater.list()).bundles.find((b) => b.version === published.version && b.status !== 'error');
+  const { bundles } = await within(updater.list(), 'Der Update-Baustein');
+  const known = bundles.find((b) => b.version === published.version && b.status !== 'error');
   const bundle =
     known ??
-    (await updater.download({
-      url: `${PAGES}bundle/app-${published.version}.zip`,
-      version: published.version,
-      // Pflicht: Ohne Prüfsumme lehnt der Baustein das Laden ab („Checksum required“).
-      // decideUpdate lässt den Weg „bundle“ nur mit Prüfsumme zu.
-      checksum: published.sha256 ?? '',
-    }));
-  await updater.next({ id: bundle.id });
+    (await within(
+      updater.download({
+        url: `${PAGES}bundle/app-${published.version}.zip`,
+        version: published.version,
+        // Pflicht: Ohne Prüfsumme lehnt der Baustein das Laden ab („Checksum required“).
+        // decideUpdate lässt den Weg „bundle“ nur mit Prüfsumme zu.
+        checksum: published.sha256 ?? '',
+      }),
+      'Das Laden des Pakets',
+      DOWNLOAD_TIMEOUT_MS,
+    ));
+  await within(updater.next({ id: bundle.id }), 'Der Update-Baustein');
   localStorage.setItem(TRIES_KEY, JSON.stringify({ version: published.version, tries: tries + 1 }));
   const update: AppUpdate = {
     kind: 'ready',
