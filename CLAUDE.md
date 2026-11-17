@@ -10,6 +10,7 @@ Private Riftbound-Sammlungs-App als PWA für Android und PC, zusätzlich als And
 - **M3 Erkennung:** vorbereitet (Fingerabdrücke, Umrisssuche, Abgleich, Prüfprogramme). Die Kartennummer wird gelesen (Tesseract). Mit 43 Fotos des Nutzers: 93,0 % richtige Karte vorn, kein falscher Selbstzähler ([docs/m3-fotos.md](docs/m3-fotos.md)); Ziel 95 % / 99 % noch nicht erreicht. Offen: Karten in Hüllen auf dunklem Untergrund, Geschwindigkeit auf dem Handy.
 - **M4 Scan-Sitzung:** gebaut (Scan-Seite, Sitzungsliste, Übernahme). Offen: Test mit echter Kamera durch den Nutzer; die Schwellen in `src/scan/tracker.ts` sind geschätzt und nach seinen Rückmeldungen einzustellen.
 - **Wünsche vom 17.11.2026:** gebaut: automatische Sicherung, Knopf „Nach Updates suchen“, Cardmarket-Link im Scanner, Filter mit Mehrfachauswahl, Suche im Kartentext. Im Browser geprüft; offen ist die Prüfung auf dem Handy, vor allem der automatischen Sicherung und des Wiederherstellens (laufen nur in der Android-App). Der Foil-Filter im Cardmarket-Link (`isFoil=Y`) ist nicht an der echten Seite geprüft.
+- **Selbst-Update:** ab 0.1.14 mit Prüfsumme. Offen: Nachweis auf dem Handy, dass eine Version nach 0.1.14 von selbst geladen wird.
 
 Repository: https://github.com/Minusprivat/personal-card-scanner · Web-App: https://minusprivat.github.io/personal-card-scanner/ · APK: https://github.com/Minusprivat/personal-card-scanner/releases/download/apk/card-scanner.apk
 
@@ -40,7 +41,7 @@ Deploy: Jeder Push auf `main` startet `.github/workflows/deploy.yml`: testen, Ka
 
 Version: `0.1.<Zahl der Commits>`. Sie steht in der App unter „Sicherung“, in `data/version.json` und als `versionCode` der APK. `data/version.json` nennt außerdem unter `apk` die älteste APK, mit der die Version läuft (letzter Commit, der `android/`, `capacitor.config.ts` oder `package.json` berührt hat).
 
-Selbst-Update der Android-App: Beim Start vergleicht sie die Versionsdatei, lädt `bundle/app-<Version>.zip` von GitHub Pages (derselbe Web-Teil wie in der APK) und nutzt ihn ab dem nächsten Öffnen. Ist die installierte APK älter als `apk`, zeigt sie stattdessen den Hinweis auf die neue APK. Startet ein nachgeladenes Paket nicht, nimmt der Baustein es nach zehn Sekunden von selbst zurück.
+Selbst-Update der Android-App: Beim Start vergleicht sie die Versionsdatei, lädt `bundle/app-<Version>.zip` von GitHub Pages (derselbe Web-Teil wie in der APK) und nutzt ihn ab dem nächsten Öffnen. Der Update-Baustein lädt nur mit Prüfsumme: Die veröffentlichte `data/version.json` nennt unter `sha256` die SHA-256 des Pakets, die App reicht sie beim Laden mit. Bis Version 0.1.13 fehlte sie, das Selbst-Update hat deshalb nie funktioniert (still gescheitert an „Checksum required“); solche APKs bekommen über `apk` ≥ 14 den Hinweis auf eine neue APK. Ist die installierte APK älter als `apk`, zeigt sie stattdessen den Hinweis auf die neue APK. Startet ein nachgeladenes Paket nicht, nimmt der Baustein es nach zehn Sekunden von selbst zurück.
 
 Die APK lässt sich lokal nicht bauen (kein Android SDK, nur Java 8 auf dem PC). `npx cap sync android` läuft lokal; den Gradle-Bau macht nur GitHub Actions. Nach Änderungen an `android/` deshalb den Workflow-Lauf abwarten und prüfen.
 
@@ -106,5 +107,7 @@ Commits in diesem Repository nutzen die GitHub-noreply-Adresse (lokale Git-Einst
 - Die automatische Sicherung schreibt nie eine leere Sammlung: Eine leere Sammlung ist oft gerade der Verlustfall und darf die vorhandenen Sicherungen nicht verdrängen.
 - `Card.text` ist wahlfrei: Die Android-App startet mit dem zuletzt gespeicherten Katalog, der das Feld noch nicht tragen muss.
 - `data/version.json` läuft nicht über den Zwischenspeicher des Service Workers (`vite.config.ts`), sonst sähe die Update-Prüfung einen alten Stand.
+- Fehler der Update-Prüfung nie still verschlucken: Die Meldung steht unter „Nach Updates suchen“ (`reason` in `updater.ts`).
+- Nach einem Wechsel der Version von `@capgo/capacitor-updater` dessen Android-Quelltext auf neue Pflichtangaben beim Laden prüfen (`downloadBundle` in `CapacitorUpdaterPlugin.java`); das Selbst-Update lässt sich nur auf dem Handy testen.
 - Stimmt eine Annahme der SPEC nicht: anhalten, Abweichung mit Vorschlag nennen, dann weiterbauen.
 - Jeder Meilenstein endet mit Tests für die Abnahmekriterien und einer Prüfanleitung fürs Handy; danach auf Freigabe warten.

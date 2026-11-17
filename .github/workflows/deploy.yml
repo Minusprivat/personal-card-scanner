@@ -54,6 +54,10 @@ jobs:
       - name: Versionsdatei für das Selbst-Update der Android-App
         run: |
           huelle=$(git rev-list --count "$(git log -1 --format=%H -- android capacitor.config.ts package.json)")
+          # APKs vor 0.1.14 können sich nicht selbst aktualisieren: Sie schicken dem Update-Baustein
+          # keine Prüfsumme mit, und er lehnt das Paket dann ab. Sie brauchen einmal eine neue APK.
+          if [ "$huelle" -lt 14 ]; then huelle=14; fi
+          echo "APK_MIN=$huelle" >> "$GITHUB_ENV"
           echo "{\"version\":\"$APP_VERSION\",\"apk\":$huelle}" > public/data/version.json
           cat public/data/version.json
       # Die Android-App nutzt dieselben Daten, damit die Quellen nur einmal abgerufen werden.
@@ -72,10 +76,15 @@ jobs:
         run: npm run build
         env:
           BASE_PATH: /personal-card-scanner/
+      # Die veröffentlichte Versionsdatei nennt zusätzlich die Prüfsumme des Pakets (SHA-256).
+      # Der Update-Baustein lädt kein Paket ohne sie und vergleicht sie nach dem Laden.
       - name: Update-Paket zur Web-App legen
         run: |
           mkdir -p dist/bundle
           mv "app-$APP_VERSION.zip" dist/bundle/
+          pruefsumme=$(sha256sum "dist/bundle/app-$APP_VERSION.zip" | cut -d' ' -f1)
+          echo "{\"version\":\"$APP_VERSION\",\"apk\":$APK_MIN,\"sha256\":\"$pruefsumme\"}" > dist/data/version.json
+          cat dist/data/version.json
       - uses: actions/upload-pages-artifact@v5
         with:
           path: dist

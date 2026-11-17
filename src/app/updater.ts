@@ -29,8 +29,8 @@ export type AppUpdate =
   | { kind: 'unavailable' }
   /** Geprüft: Die App ist aktuell. */
   | { kind: 'current'; version: string }
-  /** Die Prüfung ist gescheitert, meist ohne Netz. */
-  | { kind: 'failed' }
+  /** Die Prüfung oder das Laden ist gescheitert, meist ohne Netz. `reason` nennt die Meldung. */
+  | { kind: 'failed'; reason?: string }
   /**
    * Die neue Version ist geladen. Android-App (`native`): Sie wird beim nächsten Start aktiv,
    * `apply` startet sofort neu. Web-App: Die Seite lädt gleich von selbst neu, `apply` sofort.
@@ -104,6 +104,9 @@ async function prepareBundle(running: string, published: PublishedVersion): Prom
     (await updater.download({
       url: `${PAGES}bundle/app-${published.version}.zip`,
       version: published.version,
+      // Pflicht: Ohne Prüfsumme lehnt der Baustein das Laden ab („Checksum required“).
+      // decideUpdate lässt den Weg „bundle“ nur mit Prüfsumme zu.
+      checksum: published.sha256 ?? '',
     }));
   await updater.next({ id: bundle.id });
   localStorage.setItem(TRIES_KEY, JSON.stringify({ version: published.version, tries: tries + 1 }));
@@ -130,9 +133,11 @@ export async function checkForUpdate(running: string): Promise<AppUpdate> {
   if (Number.isNaN(buildNumber(running))) return { kind: 'unavailable' };
   try {
     const published = await loadPublished();
-    if (!published) return { kind: 'failed' };
+    if (!published) return { kind: 'failed', reason: 'Die Versionsdatei ließ sich nicht lesen.' };
     return await (isNativeApp() ? prepareBundle(running, published) : prepareWebApp(running, published));
-  } catch {
-    return { kind: 'failed' };
+  } catch (err) {
+    // Die Meldung bleibt sichtbar: Ein still verschluckter Fehler hat das Selbst-Update
+    // bis Version 0.1.13 unbemerkt verhindert.
+    return { kind: 'failed', reason: err instanceof Error ? err.message : String(err) };
   }
 }

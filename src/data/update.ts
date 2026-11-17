@@ -15,6 +15,12 @@ export interface PublishedVersion {
    * Versionsdatei im alten Format; dann gilt: neue APK nötig.
    */
   apk: number | null;
+  /**
+   * SHA-256 des Update-Pakets `bundle/app-<Version>.zip` als Hex-Zeichenkette. Der
+   * Update-Baustein lädt kein Paket ohne Prüfsumme. null, wenn die Versionsdatei keine nennt;
+   * dann lässt sich der Web-Teil nicht nachladen.
+   */
+  sha256: string | null;
 }
 
 /** Bau-Nummer einer Version: "0.1.12" → 12. NaN, wenn die Version keine trägt (lokal "dev"). */
@@ -22,9 +28,13 @@ export const buildNumber = (version: string): number => Number.parseInt(version.
 
 export function parsePublished(value: unknown): PublishedVersion | null {
   if (typeof value !== 'object' || value === null) return null;
-  const { version, apk } = value as { version?: unknown; apk?: unknown };
+  const { version, apk, sha256 } = value as { version?: unknown; apk?: unknown; sha256?: unknown };
   if (typeof version !== 'string' || Number.isNaN(buildNumber(version))) return null;
-  return { version, apk: typeof apk === 'number' && Number.isInteger(apk) && apk > 0 ? apk : null };
+  return {
+    version,
+    apk: typeof apk === 'number' && Number.isInteger(apk) && apk > 0 ? apk : null,
+    sha256: typeof sha256 === 'string' && /^[0-9a-f]{64}$/.test(sha256) ? sha256 : null,
+  };
 }
 
 /** Kehrt man nach so langer Pause in die App zurück, prüft sie von selbst erneut. */
@@ -59,6 +69,8 @@ export function decideUpdate(input: {
 
   const shell = installed === null ? Number.NaN : buildNumber(installed);
   if (published.apk === null || Number.isNaN(shell) || shell < published.apk) return 'apk';
+  // Ohne Prüfsumme lehnt der Update-Baustein das Paket ab; dann hilft nur die APK.
+  if (published.sha256 === null) return 'apk';
   // Das nachgeladene Paket kam mehrfach nicht zum Laufen: Eine frische APK behebt das sicher.
   if (failedTries >= MAX_UPDATE_TRIES) return 'apk';
   return 'bundle';

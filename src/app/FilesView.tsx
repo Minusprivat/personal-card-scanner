@@ -355,7 +355,12 @@ export function FilesView({
           <p className="update-result" role="status">
             {update.kind === 'current' && 'Du hast die aktuelle Version.'}
             {update.kind === 'unavailable' && 'Das ist eine Entwicklungsfassung; für sie gibt es keine Updates.'}
-            {update.kind === 'failed' && 'Die Prüfung ist nicht gelungen. Besteht eine Internetverbindung?'}
+            {update.kind === 'failed' && (
+              <>
+                Die Prüfung ist nicht gelungen. Besteht eine Internetverbindung?
+                {update.reason && <> Meldung: {update.reason}</>}
+              </>
+            )}
             {update.kind === 'ready' &&
               (update.native
                 ? `Version ${update.version} ist geladen und wird beim nächsten Öffnen der App aktiv.`
