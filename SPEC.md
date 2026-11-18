@@ -25,7 +25,7 @@ Eine private Web-App für ein Android-Handy erkennt Riftbound-Karten per Kamera,
 | Piltover Archive | Import und Export im Format von Piltover Archive, zum Übernehmen der bestehenden Sammlung und als Sicherung dort |
 | Varianten | Alt-Art, Overnumbered, Special Collection und Promos sind eigene Drucke mit eigenem Bestand und eigenem Preis |
 | Nutzung | Zunächst privat, keine Weitergabe |
-| Android-App | APK aus demselben Code. Speichert Dateien direkt unter „Dokumente/CardScanner“. Seit Version 0.1.11 aktualisiert sie sich selbst: Beim Start, beim Zurückkehren nach mehr als einer Stunde Pause und über den Knopf „Nach Updates suchen“ (Seite „Sicherung“) prüft sie die Versionsdatei auf GitHub Pages, lädt den neuen Web-Teil im Hintergrund und nutzt ihn ab dem nächsten Öffnen (oder sofort über „Jetzt neu starten“). Nur wenn sich die Android-Hülle geändert hat (Berechtigungen, Bausteine), installiert der Nutzer von Hand eine neue APK; die App sagt das dann. Web-App und APK führen getrennte Bestände; der Umzug läuft über die Sicherungsdatei. Alle Builds tragen dieselbe, öffentlich im Repository liegende Signatur, damit Updates die Sammlung behalten. |
+| Android-App | APK aus demselben Code. Speichert Dateien direkt unter „Dokumente/CardScanner“. Seit Version 0.1.11 aktualisiert sie sich selbst: Beim Start, beim Zurückkehren nach mehr als einer Stunde Pause und über den Knopf „Nach Updates suchen“ (Seite „Info“) prüft sie die Versionsdatei auf GitHub Pages, lädt den neuen Web-Teil im Hintergrund und nutzt ihn ab dem nächsten Öffnen (oder sofort über „Jetzt neu starten“). Nur wenn sich die Android-Hülle geändert hat (Berechtigungen, Bausteine), installiert der Nutzer von Hand eine neue APK; die App sagt das dann. Web-App und APK führen getrennte Bestände; der Umzug läuft über die Sicherungsdatei. Alle Builds tragen dieselbe, öffentlich im Repository liegende Signatur, damit Updates die Sammlung behalten. |
 | Speicherung | Lokal je Gerät, Sicherung als Datei. Handy und PC führen getrennte Bestände; die Sicherungsdatei überträgt die Sammlung von einem Gerät aufs andere. Updates lassen die Sammlung unberührt; verloren geht sie nur durch Deinstallation oder „Daten löschen“. Dagegen sichert die Android-App von selbst: Nach jeder Änderung schreibt sie eine Sicherungsdatei nach „Dokumente/CardScanner“ (eine je Tag, die letzten fünf Tage bleiben) und bietet sie bei leerer Sammlung zum Wiederherstellen an. Nach einer Deinstallation mit Neuinstallation gibt Android der App die alten Dateien nicht von selbst frei; dann zeigt sie statt des Angebots einen Hinweis auf den Ordner und den Weg über „Sicherung einspielen“ (ausblendbar). Eine neue APK wird deshalb immer über die vorhandene App installiert, nie nach einer Deinstallation. Die Web-App kann das nicht; sie erinnert ab 20 geänderten Karten an eine Sicherung. |
 | Hosting | GitHub Pages, Repository https://github.com/Minusprivat/personal-card-scanner (öffentlich), App unter https://minusprivat.github.io/personal-card-scanner/ |
 | Testmaterial | Fotos echter Karten liefert der Nutzer |
@@ -69,15 +69,16 @@ Die erste Version deckt drei Dinge ab: scannen, in einer Sitzung sammeln und aus
 - Abgeschrägte Ecken statt Rundungen, eine Serifenschrift (Cinzel, freie Lizenz, in der App enthalten) für Überschriften, schmale Rahmen um die Karten (golden bei Karten im Besitz), Filter der Farben in der Farbe ihrer Domäne.
 - Keine Schriften, Logos oder Grafiken von Riot.
 
-### Spielerdaten: Events und Profil
+### Events und Profil
 
-- Der Eintrag „Spielerdaten“ in der Kopfzeile (auf dem Handy kurz „Spieler“) bündelt Events und Profil.
+- Die Kopfzeile hat fünf Einträge mit kurzen Namen, in dieser Reihenfolge: Sammlung, Scannen, Punkte, Events, Info. „Info“ führt zu Sicherung, Import, Export und App-Version.
+- Der Eintrag „Events“ bündelt Events und Profil.
 - „Events finden und anmelden“ öffnet die Event-Seite von Riot (playriftbound.com). In der Android-App erscheint sie als Browser-Fenster über der App; es gehört zu Chrome und nutzt dessen Anmeldung bei Riot. Die App selbst sieht weder Seite noch Zugangsdaten und baut keine Anmeldung nach.
 - „Mein Profil“ öffnet die eigene Spielerseite bei BoundRift (Match-Historie, Bilanz, inoffizielle Elo). Der Link dazu wird einmal eingefügt und bleibt nur auf dem Gerät. BoundRift ist ein unabhängiges Fan-Projekt; die App verlinkt nur und ruft dort nichts ab.
 
 ### Punktezähler
 
-- Eigener Eintrag „Punktezähler“ in der Kopfzeile (auf dem Handy kurz „Punkte“); braucht weder Katalog noch Netz.
+- Eigener Eintrag „Punkte“ in der Kopfzeile; braucht weder Katalog noch Netz.
 - Standardmodus 1 gegen 1: Beide Spieler beginnen bei 0, wer zuerst 8 Punkte hat, gewinnt. Danach nimmt die Partie keine Punkte mehr an.
 - Je Spieler zwei große Knöpfe „Conquer“ und „Hold“; jedes Antippen zählt einen Punkt. „−1“ nimmt den letzten Punkt des Spielers zurück, „Zurück“ den letzten Schritt überhaupt, auch den Siegpunkt.
 - Ein Ring mit acht Feldern zeigt den Stand, darunter steht der Verlauf der Punkte (C/H). Die Leiste in der Mitte zeigt die Spieldauer ab dem ersten Punkt.
@@ -93,6 +94,7 @@ Die erste Version deckt drei Dinge ab: scannen, in einer Sitzung sammeln und aus
 - Filter nach Farbe, Kartentyp, Seltenheit, Variante, Set, Schlagwort und „besitze ich / fehlt“. Eine Karte erscheint, sobald eine ihrer Fassungen passt; „besitze ich / fehlt“ bezieht sich auf die passenden Fassungen.
 - Jeder Filter erlaubt mehrere Werte, z. B. Calm und Body. Innerhalb eines Filters genügt einer der Werte, verschiedene Filter gelten gemeinsam. Bei Farbe und Schlagwort lässt sich umstellen, dass die Karte alle gewählten Werte tragen muss.
 - Suche nach Name und Kartennummer, Hinzufügen auch ohne Scan. Die Suche findet eine Karte auch über die Namen, zu denen sie gehört (Champion, Region, Art): „Jinx“ zeigt die Units, die Legende und den Signature Spell.
+- Die Kartenansicht einer Legende zeigt die Fassungen in fester Reihenfolge: normales Motiv, Overnumbered, Overnumbered signiert, danach alle Promos und Metal-Fassungen. Bei anderen Karten gilt die Reihenfolge des Katalogs.
 - Legenden führt der Katalog nur unter ihrem Titel („Loose Cannon“). Die App zeigt sie mit dem Champion davor, „Jinx, Loose Cannon“, so wie die Units heißen und wie Cardmarket sie führt.
 - Suche im Kartentext in einem eigenen Feld: „move“ findet alle Karten, auf denen ein Wort mit „move“ beginnt (nicht „remove“). Der Text stammt aus dem Katalog und gilt je Karte, so wie er auf ihrem ersten Druck steht, samt Erklärungen in Klammern. Die Detailseite zeigt ihn an.
 - Die Detailseite zeigt alle Drucke einer Karte nebeneinander, jeweils mit Bestand und Preis.

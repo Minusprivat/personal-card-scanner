@@ -61,17 +61,17 @@ export function App() {
           <a href="#/scan" aria-current={route.page === 'scan' ? 'page' : undefined}>
             Scannen{sessionQty > 0 && <span className="nav-count">{sessionQty}</span>}
           </a>
-          <a href="#/datei" aria-current={route.page === 'files' ? 'page' : undefined}>
-            Sicherung
-          </a>
-          {/* Auf schmalen Bildschirmen stehen die kurzen Namen, damit fünf Einträge passen. */}
-          <a href="#/spiel" aria-current={route.page === 'play' ? 'page' : undefined} aria-label="Spielerdaten">
-            <span className="nav-long">Spielerdaten</span>
-            <span className="nav-short">Spieler</span>
-          </a>
+          {/* Kurze Namen, damit fünf Einträge auch auf dem Handy in eine Zeile passen. */}
           <a href="#/punkte" aria-current={route.page === 'score' ? 'page' : undefined} aria-label="Punktezähler">
-            <span className="nav-long">Punktezähler</span>
-            <span className="nav-short">Punkte</span>
+            Punkte
+          </a>
+          {/* Events bei Riot und das eigene Profil bei BoundRift. */}
+          <a href="#/spiel" aria-current={route.page === 'play' ? 'page' : undefined}>
+            Events
+          </a>
+          {/* Sicherung, Import und Export, App-Version. */}
+          <a href="#/datei" aria-current={route.page === 'files' ? 'page' : undefined}>
+            Info
           </a>
         </nav>
       </header>
@@ -104,7 +104,7 @@ export function App() {
       {restore.step === 'hint' && route.page !== 'files' && (
         <p className="notice" role="status">
           Die Sammlung auf diesem Gerät ist leer. War die App schon einmal installiert? Dann liegt die letzte
-          automatische Sicherung noch im Ordner „Dokumente/{NATIVE_FOLDER}“: auf der Seite „Sicherung“ „Sicherung
+          automatische Sicherung noch im Ordner „Dokumente/{NATIVE_FOLDER}“: auf der Seite „Info“ „Sicherung
           einspielen“ antippen und dort die neueste Datei „card-scanner-auto-…“ wählen.{' '}
           <a className="textlink" href="#/datei">
             Zur Sicherung
@@ -149,7 +149,7 @@ export function App() {
 
       {/* Der Punktezähler braucht weder Katalog noch Netz und liegt über dem Rest der Seite. */}
       {route.page === 'score' && <ScoreView />}
-      {/* Auch die Seite „Spielerdaten“ kommt ohne Katalog aus: Sie verlinkt nur. */}
+      {/* Auch die Seite „Events“ kommt ohne Katalog aus: Sie verlinkt nur. */}
       {route.page === 'play' && (
         <main>
           <PlayView />

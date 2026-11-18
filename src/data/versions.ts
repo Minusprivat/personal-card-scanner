@@ -1,4 +1,4 @@
-import type { Catalog, Print, Sku } from './model';
+import type { Card, Catalog, Print, Sku } from './model';
 
 /**
  * Fassungen einer Karte, wie die Übersicht der Sammlung sie zählt:
@@ -61,6 +61,33 @@ export function kindSummary(
     label: VERSION_LABELS[kind],
     qty: counts[kind].qty,
   }));
+}
+
+/**
+ * Platz eines Drucks in der Kartenansicht einer Legende: erst die Karten aus den Boostern
+ * (normales Motiv, Overnumbered, Overnumbered signiert, sonstige), dann alle Sonderausgaben.
+ * Ein Druck gilt als Sonderausgabe, sobald eines seiner Finishes Promo oder Metal ist.
+ */
+function legendRank(print: Print): number {
+  const booster = print.skus.every((s) => versionKind(s) === 'normal' || versionKind(s) === 'foil');
+  if (!booster) return 4;
+  const s = print.skus[0]!;
+  if (s.isOvernumbered) return s.isSigned ? 2 : 1;
+  return s.artVariant === 'normal' && !s.isSigned ? 0 : 3;
+}
+
+/**
+ * Drucke einer Karte in der Reihenfolge der Kartenansicht. Legenden zeigen erst das normale
+ * Motiv, dann Overnumbered, dann Overnumbered signiert und danach die Promos; innerhalb einer
+ * Gruppe bleibt die Reihenfolge des Katalogs. Alle anderen Karten bleiben, wie sie sind.
+ * Gilt nur für die Anzeige: Der Scanner arbeitet mit der Reihenfolge des Katalogs.
+ */
+export function detailOrder(card: Card | undefined, prints: Print[]): Print[] {
+  if (!card?.types.includes('legend')) return prints;
+  return prints
+    .map((print, at) => ({ print, at, rank: legendRank(print) }))
+    .sort((a, b) => a.rank - b.rank || a.at - b.at)
+    .map((entry) => entry.print);
 }
 
 /**

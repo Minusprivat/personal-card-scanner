@@ -1,10 +1,10 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { cardTitle, imageUrl, printCode, printImageId, type CatalogIndex } from '../data/catalog-index';
 import { DOMAIN_LABELS } from '../data/filter';
 import { FINISH_LABELS, type Print, type Sku } from '../data/model';
 import { cardmarketEnglishUrl, formatDay, formatEuro, type PriceData } from '../data/prices';
 import { variantLabel } from '../data/prints';
-import { compactOrigins, countByKind, isPromo, kindSummary, originLabels } from '../data/versions';
+import { compactOrigins, countByKind, detailOrder, isPromo, kindSummary, originLabels } from '../data/versions';
 import { db } from './db';
 
 function close() {
@@ -25,7 +25,8 @@ export function CardDetail({
   cardId: string;
 }) {
   const card = index.cardById.get(cardId);
-  const prints = index.printsByCardId.get(cardId) ?? [];
+  // Legenden: normales Motiv, Overnumbered, signiert, dann die Promos.
+  const prints = useMemo(() => detailOrder(card, index.printsByCardId.get(cardId) ?? []), [card, index, cardId]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && close();

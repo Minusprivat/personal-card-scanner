@@ -21,7 +21,7 @@ function PageLink({ url, primary, children }: { url: string; primary?: boolean; 
   );
 }
 
-/** Spielerdaten: Events bei Riot und das eigene Profil bei BoundRift. Der Punktezähler hat einen eigenen Menüpunkt. */
+/** Seite „Events“: Events bei Riot und das eigene Profil bei BoundRift. Der Punktezähler hat einen eigenen Menüpunkt. */
 export function PlayView() {
   const playerId = useLocalStore(playerStore);
   const [input, setInput] = useState('');

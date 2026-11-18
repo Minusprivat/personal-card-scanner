@@ -1,29 +1,34 @@
 # Prüfliste fürs Handy
 
-Stand 18.11.2026, App-Version 0.1.23. Fasst alle Prüfungen zusammen, die laut [CLAUDE.md](CLAUDE.md) und [SPEC.md](SPEC.md) noch offen sind. Dauer: rund 60 Minuten am Handy, dazu 15 Minuten am PC. Die Preisprüfung in Teil 4 läuft über drei Tage.
+Stand 18.11.2026, App-Version 0.1.25. Fasst alle Prüfungen zusammen, die laut [CLAUDE.md](CLAUDE.md) und [SPEC.md](SPEC.md) noch offen sind. Dauer: rund 60 Minuten am Handy, dazu 15 Minuten am PC. Die Preisprüfung in Teil 4 läuft über drei Tage.
+
+Das Menü heißt ab Version 0.1.26: Sammlung, Scannen, Punkte, Events, Info. In älteren Versionen steht „Sicherung“ statt „Info“ und „Spieler“ statt „Events“.
 
 Zu jedem Punkt: abhaken, wenn es stimmt. Stimmt etwas nicht, kurz dazuschreiben, was stattdessen passiert ist.
 
-**Bereitlegen:** 20 verschiedene Karten (darunter 5 in Hüllen, 2 Foils, 1 Promo, wenn vorhanden 1 Metal), eine helle und eine dunkle Unterlage, für Teil 6 nach Möglichkeit eine zweite Person.
+**Bereitlegen:** 20 verschiedene Karten (darunter 5 in Hüllen, 2 Foils, 1 Promo, 2 Legenden, wenn vorhanden 1 Metal), eine helle und eine dunkle Unterlage, für Teil 6 nach Möglichkeit eine zweite Person.
 
-## 0. Vorab
+## 0. Vorab: sichern, dann die neue APK
 
-- [ ] Seite „Sicherung“, ganz unten: Dort steht „Version 0.1.23 · Android-App“ (oder höher).
-- [ ] **Vor allem anderen:** „Sicherung speichern“ antippen, dann „Teilen“ und die Datei an Google Drive oder E-Mail schicken. Diese Datei ist die Rückversicherung für alle folgenden Schritte.
-- [ ] Zahl der Karten notieren, die oben auf der Seite „Sicherung“ steht: ______
+Version 0.1.25 braucht einmal eine neue APK von Hand. Die Reihenfolge ist wichtig.
+
+- [ ] In der **alten** App, Seite „Sicherung“ (dort heißt sie noch so): Zahl der Karten notieren, die oben steht: ______
+- [ ] „Sicherung speichern“ antippen, dann „Teilen“ und die Datei an Google Drive oder E-Mail schicken. Diese Datei ist die Rückversicherung für alle folgenden Schritte.
+- [ ] Die APK laden (https://github.com/Minusprivat/personal-card-scanner/releases/download/apk/card-scanner.apk) und **über die vorhandene App installieren, ohne sie vorher zu deinstallieren**.
+- [ ] Verlangt Android, die alte App erst zu entfernen? Dann nicht weitermachen, sondern den Wortlaut der Meldung notieren.
+- [ ] Seite „Info“, ganz unten: Dort steht „Version 0.1.25 · Android-App“ (oder höher).
+- [ ] Oben auf der Seite steht dieselbe Kartenzahl wie vor der Installation.
 
 ## 1. Bleibt die Sammlung bei einem Update erhalten?
 
 Am 18.11.2026 gemeldet: Nach einem Update war die Sammlung leer und musste neu eingespielt werden. Wahrscheinliche Ursache: Für einen Schritt war eine neue APK nötig, und die alte App wurde dabei entfernt. Eine Deinstallation löscht die Sammlung, und Android lässt die neu installierte App die alten Sicherungen nicht von selbst lesen (deshalb kam auch kein Angebot zum Wiederherstellen). Im Code löscht bei einem Update nichts die Sammlung. Die Punkte hier bestätigen oder widerlegen das.
 
-Ist die Sammlung nach einer Neuinstallation leer: Seite „Sicherung“ → „Sicherung einspielen“ → Ordner „Dokumente/CardScanner“ → neueste Datei „card-scanner-auto-…“.
+Ist die Sammlung nach einer Neuinstallation leer: Seite „Info“ → „Sicherung einspielen“ → Ordner „Dokumente/CardScanner“ → neueste Datei „card-scanner-auto-…“.
 
-- [ ] **Selbst-Update:** Nach dem nächsten Versionswechsel (Seite „Sicherung“ → „Nach Updates suchen“ → „Jetzt neu starten“) steht dieselbe Kartenzahl wie vorher.
-- [ ] **Neue APK von Hand:** Die neue APK über die vorhandene App installiert, **ohne** die alte zu deinstallieren. Danach steht dieselbe Kartenzahl wie vorher.
-- [ ] Verlangt Android beim Installieren, die alte App erst zu entfernen? Wenn ja: Wortlaut der Meldung notieren.
+- [ ] **Selbst-Update:** Nach dem nächsten Versionswechsel (Seite „Info“ → „Nach Updates suchen“ → „Jetzt neu starten“) steht dieselbe Kartenzahl wie vorher.
 - [ ] Ist die Sammlung doch leer: Erscheint oben der Hinweis „Im Ordner ‚Dokumente/CardScanner‘ liegt eine Sicherung …“ mit „Wiederherstellen“?
-- [ ] Ab der Version nach 0.1.23, nach einer Neuinstallation mit leerer Sammlung: Oben steht der Hinweis „War die App schon einmal installiert? …“ mit „Zur Sicherung“ und „Ausblenden“. Der beschriebene Weg führt zur Datei und bringt die Sammlung zurück.
-- [ ] Ist die Sammlung doch leer: Was steht auf der Seite „Sicherung“ (0 Karten, oder Karten mit dem Zusatz „… Fassungen stehen nicht mehr im Katalog“)?
+- [ ] Nur falls es zu einer Neuinstallation mit leerer Sammlung kommt: Oben steht der Hinweis „War die App schon einmal installiert? …“ mit „Zur Sicherung“ und „Ausblenden“. Der beschriebene Weg führt zur Datei und bringt die Sammlung zurück.
+- [ ] Ist die Sammlung doch leer: Was steht auf der Seite „Info“ (0 Karten, oder Karten mit dem Zusatz „… Fassungen stehen nicht mehr im Katalog“)?
 
 ## 2. Gerüst und Sammlung (M1)
 
@@ -34,13 +39,18 @@ Ist die Sammlung nach einer Neuinstallation leer: Seite „Sicherung“ → „S
 - [ ] Filter: zwei Farben zugleich wählen (z. B. Calm und Body), dazu einen Kartentyp. Die Liste passt.
 - [ ] Suche im Kartentext: „move“ findet Karten mit „move“, aber keine, die nur „remove“ enthalten.
 - [ ] „Besitze ich“ zeigt nur Karten mit Bestand, „Fehlt mir“ nur die anderen.
+- [ ] Legenden: Die Suche nach „Jinx“ zeigt vier Karten, darunter „Jinx, Loose Cannon“.
+- [ ] Legenden: Filter → Kartentyp „Legend“ zeigt die Legenden, jede mit dem Champion im Namen (z. B. „Irelia, Blade Dancer“).
+- [ ] Legenden: Die Kartenansicht einer Legende zeigt die normale Fassung, Overnumbered und die signierte (Nummer mit Sternchen); jede lässt sich für sich zählen.
+- [ ] Legenden: Die Fassungen stehen in dieser Reihenfolge: normales Motiv, Overnumbered, Overnumbered signiert, danach die Promos und Metal-Fassungen.
+- [ ] Legenden: Eine eigene Legende über ihren Champion suchen und den Bestand eintragen. Fehlt eine Fassung, die du besitzt: Nummer notieren.
 - [ ] Sicherung und zurück: „Sicherung speichern“, eine Menge ändern, „Sicherung einspielen“ mit der eben gespeicherten Datei. Die alte Menge ist wieder da.
 - [ ] „Teilen“ bei der Sicherung: Die Datei kommt als `.json.txt` an und lässt sich über „Sicherung einspielen“ wieder einlesen.
 - [ ] Am PC: „Für Piltover Archive speichern“ und die Datei bei Piltover Archive importieren. Notieren, ob der Import durchläuft und welche Zeilen Piltover ablehnt.
 
 ## 3. Automatische Sicherung (nur Android-App)
 
-- [ ] Eine Menge ändern, zehn Sekunden warten: Auf der Seite „Sicherung“ steht „Automatische Sicherung: zuletzt am … mit … Karten, Datei ‚card-scanner-auto-…‘“.
+- [ ] Eine Menge ändern, zehn Sekunden warten: Auf der Seite „Info“ steht „Automatische Sicherung: zuletzt am … mit … Karten, Datei ‚card-scanner-auto-…‘“.
 - [ ] In der Dateien-App des Handys liegt diese Datei unter „Dokumente/CardScanner“.
 - [ ] Es steht **kein** roter Hinweis „Die automatische Sicherung ist zuletzt gescheitert“. Wenn doch: Wortlaut notieren.
 - [ ] Am nächsten Tag noch einmal ändern: Es gibt eine zweite Datei mit dem neuen Datum.
@@ -66,6 +76,7 @@ Erst auf heller Unterlage, dann auf dunkler. Die graue Zeile ganz unten auf der 
 - [ ] Geschwindigkeit: Bei fünf Karten die Millisekunden aus der Diagnosezeile notieren: ______ Ziel: unter 1000.
 - [ ] Nummernlesen: Bei einer Promo oder einer Karte mit Auswahl erscheint in der Diagnosezeile „Nummer ‚…‘“ und **nicht** „Nummernlesen nicht verfügbar“.
 - [ ] 5 Karten in Hüllen auf dunkler Unterlage: erkannt ______ von 5.
+- [ ] 2 Legenden scannen: erkannt ______ von 2, angezeigt als „Champion, Titel“. Notieren, ob die richtige Fassung (normal, Overnumbered, signiert) gezählt wurde.
 - [ ] Eine Karte in der Hand gehalten: erkannt ja / nein.
 - [ ] „Licht an“ schaltet das Kameralicht (fehlt der Knopf, lässt das Handy es nicht zu: notieren).
 - [ ] Bei „Welche Karte ist es?“ zählt das Antippen einer Fassung genau diese.
@@ -82,25 +93,25 @@ Erst auf heller Unterlage, dann auf dunkler. Die graue Zeile ganz unten auf der 
 - [ ] Der Bildschirm bleibt an, solange der Zähler offen ist (zwei Minuten nichts antippen).
 - [ ] Optionen → Zeitlimit „eigene“ 1 Minute: Nach Ablauf steht „Overtime“, das Handy vibriert einmal, die Partie läuft weiter.
 - [ ] Optionen → „Gegenüber sitzen“: Die obere Hälfte steht auf dem Kopf; zu zweit lässt sich bequem bedienen, niemand trifft die Knöpfe des anderen.
-- [ ] Handy quer halten (automatisches Drehen in Android eingeschaltet): Der Zähler bleibt im Hochformat. Braucht die APK nach 0.1.23.
+- [ ] Handy quer halten (automatisches Drehen in Android eingeschaltet): Der Zähler bleibt im Hochformat.
 - [ ] Optionen → „Expertenmodus“: „Wer beginnt?“ erscheint, „Pass turn“ wechselt den Zug und zählt die Zugnummer, „History“ zeigt Zeit, Zug, Spieler, Punkt und Stand.
 - [ ] Laufende Partie, App schließen und öffnen: Stand und Uhr stimmen noch.
 
 ## 7. Spielerdaten
 
-- [ ] „Spieler“ → „Events finden und anmelden“: Die Seite von Riot öffnet sich als Fenster **über** der App (mit Schließen-Kreuz oben), nicht in einem getrennten Chrome.
+- [ ] „Events“ → „Events finden und anmelden“: Die Seite von Riot öffnet sich als Fenster **über** der App (mit Schließen-Kreuz oben), nicht in einem getrennten Chrome.
 - [ ] In diesem Fenster bist du bei Riot angemeldet oder kannst dich anmelden; nach dem Schließen und erneuten Öffnen bist du es noch.
 - [ ] Schließen des Fensters führt zurück in die App, an dieselbe Stelle.
 - [ ] Den Link zur eigenen BoundRift-Seite einfügen und „Speichern“: „Mein Profil öffnen“ zeigt danach das eigene Profil. Ein falscher Link ergibt die rote Meldung.
 
 ## 8. Gestaltung
 
-- [ ] Die Kopfzeile zeigt alle fünf Einträge in einer Zeile (Sammlung, Scannen, Sicherung, Spieler, Punkte), nichts ist abgeschnitten.
+- [ ] Die Kopfzeile zeigt alle fünf Einträge in einer Zeile (Sammlung, Scannen, Punkte, Events, Info), nichts ist abgeschnitten, und jeder Eintrag führt auf die richtige Seite.
 - [ ] Goldene Überschriften und der helle Text sind bei Tageslicht draußen lesbar.
 - [ ] Alle Knöpfe lassen sich mit dem Daumen sicher treffen; besonders Filter, Mengen-Knöpfe und die Zeilen der Sitzung.
 - [ ] Karten im Besitz sind in der Übersicht auf einen Blick von fehlenden zu unterscheiden.
 - [ ] Nichts ruckelt beim Scrollen durch die ganze Sammlung.
-- [ ] Handy quer halten, auf jeder der fünf Seiten: Die App bleibt im Hochformat (APK nach 0.1.23). Auf der Scan-Seite steht das Kamerabild dabei aufrecht.
+- [ ] Handy quer halten, auf jeder der fünf Seiten: Die App bleibt im Hochformat. Auf der Scan-Seite steht das Kamerabild dabei aufrecht.
 
 ## Rückmeldung
 

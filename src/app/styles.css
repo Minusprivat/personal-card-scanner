@@ -513,7 +513,7 @@ button.link {
   font-weight: 700;
 }
 
-/* Seite „Spiel“: Eingabe für den Link zum eigenen Profil. */
+/* Seite „Events“: Eingabe für den Link zum eigenen Profil. */
 .profile-form {
   display: flex;
   gap: 8px;
@@ -723,7 +723,7 @@ button.link {
   font-weight: 700;
 }
 
-/* Kopfzeile: fünf Einträge. Auf schmalen Bildschirmen stehen kurze Namen und der Schriftzug fällt weg. */
+/* Kopfzeile: fünf Einträge mit kurzen Namen. Auf schmalen Bildschirmen fällt der Schriftzug weg. */
 .topbar nav a {
   display: inline-flex;
   align-items: center;
@@ -740,19 +740,6 @@ button.link {
 
 .topbar nav::-webkit-scrollbar {
   display: none;
-}
-
-.nav-short {
-  display: none;
-}
-
-@media (max-width: 760px) {
-  .nav-long {
-    display: none;
-  }
-  .nav-short {
-    display: inline;
-  }
 }
 
 .nav-count {
