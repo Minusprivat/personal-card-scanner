@@ -165,6 +165,20 @@ export interface QueryFingerprint {
   /** true für die um 180° gedrehte Lage. */
   flipped: boolean;
   zoom: number;
+  /**
+   * Wo die Karte im entzerrten Umriss liegt, als Anteile seiner Breite und Höhe und in der
+   * Lage, in der er entzerrt wurde (also ohne die Drehung um 180°). Fehlt bei den mittigen
+   * Ausschnitten: Dort gilt der Umriss selbst als Kartenrand.
+   */
+  card?: CardRegion;
+}
+
+/** Rechteck im entzerrten Umriss, Anteile von 0 bis 1. */
+export interface CardRegion {
+  x0: number;
+  x1: number;
+  y0: number;
+  y1: number;
 }
 
 /**
@@ -181,16 +195,151 @@ export function queryFingerprints(px: Pixels): QueryFingerprint[] {
   ]);
 }
 
+/**
+ * Ausschnitte für Karten in Hüllen: Der Umriss trifft dann die Hülle, und die Karte sitzt
+ * darin selten mittig, meist an einer Kante oder in einer Ecke. Anteil der Hülle, den die
+ * Karte einnimmt; 0.88 deckt dickere Hüllen ab.
+ *
+ * Bewusst in Breite und Höhe derselbe Anteil. Getrennte Anteile je Richtung (rund 330
+ * Ausschnitte statt 48) fanden zwar mehr Karten in weiten Hüllen, ließen aber an den Fotos
+ * vom 18.11.2026 zwei falsche Karten von selbst zählen: Mit so vielen Versuchen passt
+ * irgendein Ausschnitt zufällig gut zu einer fremden Karte.
+ */
+export const SLEEVE_ZOOMS = [0.96, 0.92, 0.88] as const;
+
+/** Lagen des verkleinerten Ausschnitts entlang einer Richtung: am Anfang, mittig, am Ende. */
+const sleeveSpans = (zoom: number): Array<[number, number]> => [
+  [0, zoom],
+  [(1 - zoom) / 2, (1 + zoom) / 2],
+  [1 - zoom, 1],
+];
+
+/**
+ * Wie `queryFingerprints`, aber für Karten in Hüllen: der verkleinerte Ausschnitt an jeder
+ * Kante und in jeder Ecke des Umrisses, in beiden Drehungen. Das sind 48 Fingerabdrücke; der
+ * Abgleich rechnet sie nur, wenn die mittigen Ausschnitte keinen sicheren Treffer ergeben.
+ */
+export function sleeveFingerprints(px: Pixels): QueryFingerprint[] {
+  const gray = toGray(px);
+  const sums = integral(gray);
+  const out: QueryFingerprint[] = [];
+  for (const zoom of SLEEVE_ZOOMS) {
+    const spans = sleeveSpans(zoom);
+    for (const [y0, y1] of spans) {
+      for (const [x0, x1] of spans) {
+        // Der mittige Ausschnitt ist schon mit `queryFingerprints` geprüft.
+        if (x0 === spans[1]![0] && y0 === spans[1]![0]) continue;
+        const card = { x0, x1, y0, y1 };
+        for (const flipped of [false, true]) {
+          const fp = new Uint8Array(FP_BYTES);
+          phash(gridFromSums(sums, gray, within(card, FULL, flipped), flipped), fp, 0);
+          phash(gridFromSums(sums, gray, within(card, ART, flipped), flipped), fp, 8);
+          out.push({ fp, flipped, zoom, card });
+        }
+      }
+    }
+  }
+  return out;
+}
+
+/**
+ * Ausschnitt `r` der Karte (Anteile der Karte), umgerechnet auf den entzerrten Umriss, in
+ * dem die Karte das Feld `card` füllt. Steht die Karte kopf, liegt der Ausschnitt gespiegelt.
+ */
+function within(card: CardRegion, r: Region, flipped: boolean): Region {
+  const w = card.x1 - card.x0;
+  const h = card.y1 - card.y0;
+  return flipped
+    ? { x0: card.x1 - r.x1 * w, x1: card.x1 - r.x0 * w, y0: card.y1 - r.y1 * h, y1: card.y1 - r.y0 * h }
+    : { x0: card.x0 + r.x0 * w, x1: card.x0 + r.x1 * w, y0: card.y0 + r.y0 * h, y1: card.y0 + r.y1 * h };
+}
+
+/**
+ * Summenbild: Wert an (x, y) = Summe aller Pixel links oberhalb. Damit kostet der Mittelwert
+ * eines Feldes vier Zugriffe statt einer Schleife über seine Pixel; bei 48 Ausschnitten je
+ * Umriss ist das der Unterschied zwischen brauchbar und zu langsam.
+ */
+function integral(g: Gray): Float64Array {
+  const w = g.width + 1;
+  const sums = new Float64Array(w * (g.height + 1));
+  for (let y = 0; y < g.height; y++) {
+    let row = 0;
+    for (let x = 0; x < g.width; x++) {
+      row += g.data[y * g.width + x]!;
+      sums[(y + 1) * w + x + 1] = sums[y * w + x + 1]! + row;
+    }
+  }
+  return sums;
+}
+
+/**
+ * Wie `grid`, aber aus dem Summenbild. Zwischen den Pixelgrenzen wird das Summenbild
+ * linear gelesen; das zählt angeschnittene Pixel genau anteilig, wie `grid` es tut.
+ * `flipped` liefert die Felder so, als wäre das Bild um 180° gedreht.
+ */
+function gridFromSums(sums: Float64Array, g: Gray, r: Region, flipped: boolean): Float64Array {
+  const w = g.width + 1;
+  const n = GRID + 1;
+  // Feldgrenzen: ganzzahliger Teil und Rest, je Richtung einmal gerechnet.
+  const xi = new Int32Array(n);
+  const xt = new Float64Array(n);
+  const yi = new Int32Array(n);
+  const yt = new Float64Array(n);
+  const cw = ((r.x1 - r.x0) * g.width) / GRID;
+  const ch = ((r.y1 - r.y0) * g.height) / GRID;
+  for (let k = 0; k < n; k++) {
+    const x = Math.min(Math.max(r.x0 * g.width + k * cw, 0), g.width);
+    const y = Math.min(Math.max(r.y0 * g.height + k * ch, 0), g.height);
+    xi[k] = Math.min(Math.floor(x), g.width - 1);
+    xt[k] = x - xi[k]!;
+    yi[k] = Math.min(Math.floor(y), g.height - 1);
+    yt[k] = y - yi[k]!;
+  }
+  // Summe links oberhalb jeder Feldecke.
+  const corner = new Float64Array(n * n);
+  for (let j = 0; j < n; j++) {
+    const row = yi[j]! * w;
+    const ty = yt[j]!;
+    for (let i = 0; i < n; i++) {
+      const at = row + xi[i]!;
+      const tx = xt[i]!;
+      const a = sums[at]!;
+      const b = sums[at + 1]!;
+      const c = sums[at + w]!;
+      const d = sums[at + w + 1]!;
+      corner[j * n + i] = a + (b - a) * tx + (c - a) * ty + (a - b - c + d) * tx * ty;
+    }
+  }
+  const out = new Float64Array(GRID * GRID);
+  const area = cw * ch;
+  const last = GRID * GRID - 1;
+  for (let j = 0; j < GRID; j++) {
+    for (let i = 0; i < GRID; i++) {
+      const at = j * n + i;
+      const mean = (corner[at + n + 1]! - corner[at + n]! - corner[at + 1]! + corner[at]!) / area;
+      out[flipped ? last - (j * GRID + i) : j * GRID + i] = mean;
+    }
+  }
+  return out;
+}
+
 const POPCOUNT = (() => {
   const t = new Uint8Array(256);
   for (let i = 1; i < 256; i++) t[i] = t[i >> 1]! + (i & 1);
   return t;
 })();
 
-/** Zahl der unterschiedlichen Bits zweier Fingerabdrücke (0 = gleich, 128 = völlig verschieden). */
-export function distance(a: Uint8Array, aOffset: number, b: Uint8Array, bOffset = 0): number {
+/**
+ * Zahl der unterschiedlichen Bits zweier Fingerabdrücke (0 = gleich, 128 = völlig verschieden).
+ * Mit `giveUpAt` bricht die Zählung nach der ersten Hälfte ab, sobald dieser Wert erreicht
+ * ist; das Ergebnis ist dann nur „mindestens so viel“. Die Suche im Katalog spart so Zeit.
+ */
+export function distance(a: Uint8Array, aOffset: number, b: Uint8Array, bOffset = 0, giveUpAt = Infinity): number {
   let d = 0;
-  for (let i = 0; i < FP_BYTES; i++) d += POPCOUNT[a[aOffset + i]! ^ b[bOffset + i]!]!;
+  const half = FP_BYTES >> 1;
+  for (let i = 0; i < half; i++) d += POPCOUNT[a[aOffset + i]! ^ b[bOffset + i]!]!;
+  if (d >= giveUpAt) return d;
+  for (let i = half; i < FP_BYTES; i++) d += POPCOUNT[a[aOffset + i]! ^ b[bOffset + i]!]!;
   return d;
 }
 

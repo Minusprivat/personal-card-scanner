@@ -1,4 +1,14 @@
-import { distance, FP_BYTES, FP_VERSION, fromHex, queryFingerprints, type Pixels } from './fingerprint';
+import {
+  distance,
+  FP_BYTES,
+  FP_VERSION,
+  fromHex,
+  queryFingerprints,
+  sleeveFingerprints,
+  type CardRegion,
+  type Pixels,
+  type QueryFingerprint,
+} from './fingerprint';
 
 /** Tagesdatei `data/fingerprints.json`: Bild-Id → Fingerabdruck als Hex-Text. */
 export interface FingerprintFile {
@@ -32,7 +42,7 @@ export interface Match {
 export function nearest(set: FingerprintSet, query: Uint8Array, k = 3): Match[] {
   const best: Match[] = [];
   for (let i = 0; i < set.imageIds.length; i++) {
-    const d = distance(set.hashes, i * FP_BYTES, query);
+    const d = distance(set.hashes, i * FP_BYTES, query, 0, best.length === k ? best[k - 1]!.distance : FP_BYTES * 8 + 1);
     if (best.length === k && d >= best[k - 1]!.distance) continue;
     let at = best.length;
     while (at > 0 && best[at - 1]!.distance > d) at--;
@@ -46,6 +56,8 @@ export interface CardMatch {
   matches: Match[];
   /** true, wenn die Karte im Bild kopfstand. */
   flipped: boolean;
+  /** Lage der Karte im Umriss, wenn ein verschobener Ausschnitt am besten passte (Karte in Hülle). */
+  card?: CardRegion;
 }
 
 /**
@@ -53,11 +65,24 @@ export interface CardMatch {
  * beide Lagen und mehrere Ausschnitte; es gilt die Fassung mit dem besten Treffer.
  */
 export function matchCard(set: FingerprintSet, px: Pixels, k = 3): CardMatch {
-  let best: CardMatch = { matches: [], flipped: false };
-  for (const query of queryFingerprints(px)) {
+  return bestOf(set, queryFingerprints(px), k, { matches: [], flipped: false });
+}
+
+/**
+ * Wie `matchCard`, aber für Karten in Hüllen: prüft zusätzlich Ausschnitte, die an Kanten
+ * und Ecken des Umrisses anliegen. `start` ist das Ergebnis von `matchCard`; es bleibt,
+ * wenn kein verschobener Ausschnitt besser passt.
+ */
+export function matchSleeved(set: FingerprintSet, px: Pixels, k: number, start: CardMatch): CardMatch {
+  return bestOf(set, sleeveFingerprints(px), k, start);
+}
+
+function bestOf(set: FingerprintSet, queries: QueryFingerprint[], k: number, start: CardMatch): CardMatch {
+  let best = start;
+  for (const query of queries) {
     const matches = nearest(set, query.fp, k);
     if (matches.length && (best.matches.length === 0 || matches[0]!.distance < best.matches[0]!.distance)) {
-      best = { matches, flipped: query.flipped };
+      best = { matches, flipped: query.flipped, card: query.card };
     }
   }
   return best;

@@ -206,15 +206,26 @@ function quadsFromMask(
   }
 }
 
+/**
+ * Schwellen der Kantensuche. Die feine Stufe findet auch den schwachen Rand einer dunklen
+ * Karte auf dunkler Matte, nimmt aber Holzmaserung und den Rand einer Hülle mit; beides
+ * hängt sich an den Kartenumriss und macht ihn unbrauchbar. Die grobe Stufe sieht nur
+ * kräftige Kanten: den schwarzen Kartenrand auf hellem Holz, nicht die Maserung.
+ */
+const EDGE_LEVELS = [
+  { low: 25, high: 75 },
+  { low: 70, high: 200 },
+] as const;
+
 /** Verfahren 1: Kanten im Helligkeitsbild. */
-function edgeMask(cv: OpenCv, small: OpenCv): OpenCv {
+function edgeMask(cv: OpenCv, small: OpenCv, level: (typeof EDGE_LEVELS)[number]): OpenCv {
   const gray = new cv.Mat();
   const edges = new cv.Mat();
   const kernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(3, 3));
   try {
     cv.cvtColor(small, gray, cv.COLOR_RGBA2GRAY);
     cv.GaussianBlur(gray, gray, new cv.Size(5, 5), 0);
-    cv.Canny(gray, edges, 25, 75);
+    cv.Canny(gray, edges, level.low, level.high);
     // Kleine Lücken im Umriss schließen, sonst zerfällt er in Stücke.
     cv.dilate(edges, edges, kernel, new cv.Point(-1, -1), EDGE_DILATION);
     return edges;
@@ -318,16 +329,21 @@ export function findCandidates(cv: OpenCv, src: OpenCv): Candidate[] {
   try {
     cv.resize(src, small, new cv.Size(Math.round(src.cols * scale), Math.round(src.rows * scale)), 0, 0, cv.INTER_AREA);
     const background = backgroundMask(cv, small);
-    const edges = edgeMask(cv, small);
     const structure = structureMask(cv, small);
     try {
       quadsFromMask(cv, background, 'hintergrund', found);
-      quadsFromMask(cv, edges, 'kanten', found, true, EDGE_DILATION);
       quadsFromMask(cv, structure, 'struktur', found);
     } finally {
       background.delete();
-      edges.delete();
       structure.delete();
+    }
+    for (const level of EDGE_LEVELS) {
+      const edges = edgeMask(cv, small, level);
+      try {
+        quadsFromMask(cv, edges, 'kanten', found, true, EDGE_DILATION);
+      } finally {
+        edges.delete();
+      }
     }
 
     found.sort((a, b) => b.area - a.area);
