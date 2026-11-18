@@ -4,6 +4,8 @@ import { registerSW } from 'virtual:pwa-register';
 import { App } from './App';
 import { isNativeApp } from './save';
 import './styles.css';
+// Formen und Schrift des Hextech-Stils; muss nach styles.css stehen.
+import './theme.css';
 
 // Neue Versionen übernimmt der Service Worker beim nächsten Start von selbst.
 // Die Android-App bringt ihre Dateien selbst mit und braucht ihn nicht.

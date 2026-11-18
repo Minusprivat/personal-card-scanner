@@ -1,20 +1,26 @@
 :root {
   color-scheme: dark;
-  --bg: #101622;
-  --surface: #182134;
-  --surface-2: #212c44;
-  --border: #2e3b57;
-  --text: #e9eef7;
-  --muted: #9aa7bf;
-  --accent: #38d39f;
-  --accent-ink: #06281c;
-  --danger: #ff8a80;
-  --radius: 10px;
+  /* Farben im Hextech-Stil: Nachtblau, Gold, Türkis, Pergament. Formen und Schrift stehen in theme.css. */
+  --bg: #0a1420;
+  --surface: #111e2e;
+  --surface-2: #18283b;
+  /* Linien und Rahmen in gedämpftem Gold. */
+  --border: #4f4530;
+  --text: #f0e6d2;
+  --muted: #a09b8c;
+  /* Türkis: alles, was man antippt, und „im Besitz“. */
+  --accent: #0ac8b9;
+  --accent-ink: #04201e;
+  --danger: #ff7b8a;
+  /* Gold: Überschriften, Rahmen besessener Karten, ausgewählte Filter. */
+  --gold: #c8aa6e;
+  --gold-ink: #241a06;
+  --radius: 3px;
   --topbar-h: calc(56px + env(safe-area-inset-top));
   /* Punktezähler: Farben der beiden Punktarten und des zweiten Spielers. */
-  --conquer: #ffc24a;
-  --hold: #5ab8ff;
-  --player-2: #ff7fa3;
+  --conquer: #c8aa6e;
+  --hold: #0ac8b9;
+  --player-2: #f28ba8;
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   font-size: 16px;
   line-height: 1.4;
@@ -842,7 +848,7 @@ button.link {
 
 .outline.sure polygon {
   stroke: var(--accent);
-  fill: rgba(56, 211, 159, 0.18);
+  fill: rgba(10, 200, 185, 0.18);
 }
 
 .viewfinder-status {
@@ -852,7 +858,7 @@ button.link {
   margin: 0;
   padding: 4px 12px;
   transform: translateX(-50%);
-  background: rgba(16, 22, 34, 0.8);
+  background: rgba(10, 20, 32, 0.85);
   border-radius: 999px;
   font-size: 0.9rem;
   white-space: nowrap;

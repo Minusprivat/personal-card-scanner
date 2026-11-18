@@ -62,6 +62,12 @@ Die erste Version deckt drei Dinge ab: scannen, in einer Sitzung sammeln und aus
 - Die Katalogquelle verknüpft neue Promos und Bundles erst mit Verzögerung mit Cardmarket. Bis dahin ordnet das Datenskript sie über die öffentliche Produktliste von Cardmarket selbst zu, aber nur, wenn die Zuordnung eindeutig ist: Der Kartenname kommt bei den offenen Produkten und den offenen Fassungen je genau einmal vor und das Set passt zur Edition, oder eine ganze Edition deckt sich eins zu eins mit den offenen Fassungen eines Sets.
 - Metal und Metal Deluxe bleiben ausgenommen und ohne Preis, bis die Katalogquelle sie verknüpft. Verknüpfungen der Quelle haben immer Vorrang.
 
+### Gestaltung
+
+- Hextech-Stil, angelehnt an League of Legends und Legends of Runeterra: Nachtblau als Grund, Gold für Überschriften, Rahmen und ausgewählte Filter, Türkis für Aktionen und „im Besitz“, Pergament-Weiß für Text.
+- Abgeschrägte Ecken statt Rundungen, eine Serifenschrift (Cinzel, freie Lizenz, in der App enthalten) für Überschriften, schmale Rahmen um die Karten (golden bei Karten im Besitz), Filter der Farben in der Farbe ihrer Domäne.
+- Keine Schriften, Logos oder Grafiken von Riot.
+
 ### Spielerdaten: Events und Profil
 
 - Der Eintrag „Spielerdaten“ in der Kopfzeile (auf dem Handy kurz „Spieler“) bündelt Events und Profil.

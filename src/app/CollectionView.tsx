@@ -153,7 +153,7 @@ export function CollectionView({
             onAll={filters.domains.length > 1 ? (v) => set('allDomains', v) : undefined}
           >
             {options.domains.map((d) => (
-              <Chip key={d} on={filters.domains.includes(d)} onClick={() => toggle('domains', d)}>
+              <Chip key={d} on={filters.domains.includes(d)} tone={d} onClick={() => toggle('domains', d)}>
                 {DOMAIN_LABELS[d]}
               </Chip>
             ))}
@@ -266,15 +266,18 @@ function Chip({
   on,
   onClick,
   title,
+  tone,
   children,
 }: {
   on: boolean;
   onClick: () => void;
   title?: string;
+  /** Farbe der Domäne (fury, calm …); ohne Angabe gilt die Farbe für ausgewählte Filter. */
+  tone?: string;
   children: ReactNode;
 }) {
   return (
-    <button type="button" className="chip" aria-pressed={on} title={title} onClick={onClick}>
+    <button type="button" className="chip" aria-pressed={on} title={title} data-tone={tone} onClick={onClick}>
       {children}
     </button>
   );

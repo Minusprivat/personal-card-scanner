@@ -1,0 +1,255 @@
+/*
+ * Hextech-Stil: Formen, Rahmen und Schrift. Die Farben stehen als Werte in styles.css (:root).
+ *
+ * Angelehnt an die Oberflächen von League of Legends und Legends of Runeterra, ohne deren
+ * Schriften, Logos oder Grafiken: abgeschrägte Ecken statt Rundungen, feine goldene Linien,
+ * eine Serifenschrift für Überschriften. Diese Datei wird nach styles.css geladen und
+ * überschreibt dort nur Form und Schrift, nie das Verhalten.
+ */
+
+/* Cinzel, SIL Open Font License (fonts/OFL-Cinzel.txt). Liegt in der App, damit sie ohne Netz da ist. */
+@font-face {
+  font-family: 'Cinzel';
+  src: url('./fonts/cinzel-latin.woff2') format('woff2');
+  font-weight: 400 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --font-display: 'Cinzel', 'Trajan Pro', Georgia, 'Times New Roman', serif;
+  /* Abgeschrägte Ecken oben links und unten rechts; die kleine Form ist für Schildchen. */
+  --cut: polygon(9px 0, 100% 0, 100% calc(100% - 9px), calc(100% - 9px) 100%, 0 100%, 0 9px);
+  --cut-sm: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
+}
+
+/* Überschriften */
+.brand,
+.panel h1,
+.panel h2,
+.sheet h2,
+.detail h1,
+.print h2,
+.last-text h2,
+.value strong,
+.ring-score strong,
+.side-name,
+.starter-pick,
+.pass {
+  font-family: var(--font-display);
+  letter-spacing: 0.03em;
+}
+
+.brand,
+.panel h1,
+.panel h2,
+.sheet h2,
+.detail h1,
+.value strong {
+  color: var(--gold);
+  font-weight: 600;
+}
+
+/* Kopfzeile: goldener Strich unter dem aktiven Eintrag statt einer Pille. */
+.topbar nav a {
+  padding-bottom: 6px;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+}
+
+.topbar nav a[aria-current='page'] {
+  background: none;
+  border-bottom-color: var(--gold);
+  color: var(--gold);
+}
+
+/* Abgeschrägte Ecken für alles, was man antippt oder ausfüllt. */
+.back,
+.buttons button,
+.buttons a.button,
+.counter button,
+.filter-toggle,
+.filters input,
+.scan-controls button,
+.scan-controls select,
+.session select,
+.last-scan select,
+.stepper button,
+.choice,
+.point,
+.pass,
+.starter-pick,
+.profile-form input,
+.profile-form button,
+.score-bar button.primary,
+.score-bar button.score-clock.start {
+  border-radius: 0;
+  clip-path: var(--cut);
+}
+
+.chip,
+.minus,
+.badge,
+.nav-count,
+.turn-badge,
+.kind-badge,
+.detail-kinds .kind,
+.dot,
+.point-count,
+.history .ot {
+  border-radius: 0;
+  clip-path: var(--cut-sm);
+}
+
+/* Die schräge Form schneidet einen äußeren Fokusrahmen ab; er liegt deshalb innen. */
+:is(
+    .back,
+    .buttons button,
+    .buttons a.button,
+    .counter button,
+    .filter-toggle,
+    .filters input,
+    .scan-controls button,
+    .scan-controls select,
+    .session select,
+    .last-scan select,
+    .stepper button,
+    .choice,
+    .point,
+    .pass,
+    .starter-pick,
+    .profile-form input,
+    .profile-form button,
+    .score-bar button,
+    .chip,
+    .minus
+  ):focus-visible {
+  outline-offset: -3px;
+}
+
+/* Filter: ausgewählt ist golden; die Domänen tragen ihre eigene Farbe. */
+.chip[aria-pressed='true'] {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: var(--gold-ink);
+}
+
+.chip[data-tone] {
+  border-color: var(--tone);
+  color: var(--tone-text);
+}
+
+.chip[data-tone][aria-pressed='true'] {
+  background: var(--tone);
+  border-color: var(--tone);
+  color: var(--tone-ink);
+}
+
+.chip[data-tone='fury'] {
+  --tone: #d9483b;
+  --tone-text: #f0a39b;
+  --tone-ink: #2a0906;
+}
+
+.chip[data-tone='calm'] {
+  --tone: #4db37e;
+  --tone-text: #9bdcb9;
+  --tone-ink: #06301c;
+}
+
+.chip[data-tone='mind'] {
+  --tone: #3d8fd9;
+  --tone-text: #9cc8f2;
+  --tone-ink: #04203c;
+}
+
+.chip[data-tone='body'] {
+  --tone: #e08a3c;
+  --tone-text: #f2c08f;
+  --tone-ink: #3a1d04;
+}
+
+.chip[data-tone='chaos'] {
+  --tone: #9a5cd0;
+  --tone-text: #cbaaea;
+  --tone-ink: #1f0a35;
+}
+
+.chip[data-tone='order'] {
+  --tone: #e3c24a;
+  --tone-text: #f0dc94;
+  --tone-ink: #3a2c04;
+}
+
+.chip[data-tone='neutral'],
+.chip[data-tone='colorless'] {
+  --tone: var(--muted);
+  --tone-text: var(--text);
+  --tone-ink: var(--bg);
+}
+
+.filter-toggle.active {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+/* Karten: schmaler Rahmen, golden bei Karten im Besitz. */
+.tile .art,
+.print .art.large {
+  padding: 3px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+}
+
+.tile.owned .art {
+  border-color: var(--gold);
+}
+
+.art img {
+  border-radius: 4.5% / 3.2%;
+}
+
+.badge {
+  top: 0;
+  right: 0;
+  background: var(--gold);
+  color: var(--gold-ink);
+}
+
+/* Sammlungswert als Zeile zwischen zwei goldenen Linien. */
+.value {
+  justify-content: center;
+  padding: 10px 0;
+  background: none;
+  border: solid var(--border);
+  border-width: 1px 0;
+  border-radius: 0;
+  text-align: center;
+}
+
+.detail-kinds .kind.has {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+/* Hauptknöpfe türkis, „Pass turn“ und die Wahl des Beginners in der Farbe des Spiels. */
+.pass {
+  background: var(--gold);
+  color: var(--gold-ink);
+  font-weight: 700;
+}
+
+.turn-badge {
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  letter-spacing: 0;
+}
+
+.sheet {
+  border-color: var(--gold);
+  border-radius: 4px;
+}
+
+.score-bar button {
+  border-radius: 0;
+}

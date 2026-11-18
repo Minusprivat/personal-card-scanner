@@ -18,7 +18,7 @@ export function openPage(url: string): void {
     return;
   }
   // Ältere APKs kennen den Baustein noch nicht; dann übernimmt der normale Browser.
-  void Browser.open({ url, toolbarColor: '#101622' }).catch(() => window.open(url, '_blank', 'noopener'));
+  void Browser.open({ url, toolbarColor: '#0a1420' }).catch(() => window.open(url, '_blank', 'noopener'));
 }
 
 /**
