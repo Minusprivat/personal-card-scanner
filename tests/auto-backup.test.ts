@@ -10,6 +10,8 @@ import {
   needsBackupReminder,
   newestBackupsFirst,
   obsoleteAutoBackups,
+  restoreStep,
+  type RestoreSituation,
 } from '../src/data/auto-backup';
 import { emptyCollection } from '../src/data/backup';
 
@@ -103,5 +105,54 @@ describe('Erinnerung an die Sicherung in der Web-App', () => {
     const later = { at: null, cards: 45 };
     expect(needsBackupReminder(50, later)).toBe(false);
     expect(needsBackupReminder(65, later)).toBe(true);
+  });
+});
+
+describe('Leere Sammlung in der Android-App: Angebot oder Hinweis', () => {
+  // Ausgangslage: Suche fertig, Sammlung leer, keine lesbare Sicherung, nichts weggeklickt.
+  const situation = (change: Partial<RestoreSituation> = {}): RestoreSituation => ({
+    searched: true,
+    emptyAtStart: true,
+    cards: 0,
+    readable: false,
+    offerDeclined: false,
+    hintDismissed: false,
+    ...change,
+  });
+
+  it('bietet eine lesbare Sicherung zum Wiederherstellen an', () => {
+    expect(restoreStep(situation({ readable: true }))).toBe('offer');
+  });
+
+  it('weist nach einer Neuinstallation auf den Ordner hin, wenn Android die Dateien nicht freigibt', () => {
+    expect(restoreStep(situation())).toBe('hint');
+  });
+
+  it('zeigt nichts, solange die Suche läuft', () => {
+    expect(restoreStep(situation({ searched: false }))).toBe('none');
+    expect(restoreStep(situation({ searched: false, readable: true }))).toBe('none');
+  });
+
+  it('zeigt nichts, wenn die Sammlung beim Start Karten hatte', () => {
+    // Auch dann nicht, wenn der Bestand noch lädt und deshalb kurz 0 Karten gemeldet werden.
+    expect(restoreStep(situation({ emptyAtStart: false }))).toBe('none');
+    expect(restoreStep(situation({ emptyAtStart: false, readable: true }))).toBe('none');
+  });
+
+  it('verschwindet, sobald Karten in der Sammlung sind', () => {
+    expect(restoreStep(situation({ cards: 1 }))).toBe('none');
+    expect(restoreStep(situation({ cards: 300, readable: true }))).toBe('none');
+  });
+
+  it('bleibt nach „Ausblenden“ weg', () => {
+    expect(restoreStep(situation({ hintDismissed: true }))).toBe('none');
+  });
+
+  it('macht aus einem abgelehnten Angebot keinen Hinweis', () => {
+    expect(restoreStep(situation({ readable: true, offerDeclined: true }))).toBe('none');
+  });
+
+  it('bietet eine lesbare Sicherung auch an, wenn der Hinweis früher ausgeblendet wurde', () => {
+    expect(restoreStep(situation({ readable: true, hintDismissed: true }))).toBe('offer');
   });
 });

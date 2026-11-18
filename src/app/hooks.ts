@@ -2,11 +2,19 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { buildIndex, type CatalogIndex } from '../data/catalog-index';
 import type { PriceData } from '../data/prices';
+import { restoreStep, type RestoreStep } from '../data/auto-backup';
 import { shouldRecheck } from '../data/update';
-import { findRestorable, startAutoBackup, type Restorable } from './auto-backup';
+import {
+  findRestorable,
+  restoreHintDismissed,
+  startAutoBackup,
+  type Restorable,
+  type RestoreSearch,
+} from './auto-backup';
 import { loadCatalog, loadPrices } from './catalog-loader';
 import { checkForUpdate, installedApkVersion, markAppReady, type AppUpdate } from './updater';
 import { db, type SessionRow } from './db';
+import { useLocalStore } from './local-store';
 import { isNativeApp } from './save';
 
 export type CatalogState =
@@ -111,23 +119,48 @@ export function useAutoBackup(index: CatalogIndex | null): void {
   useEffect(() => (index ? startAutoBackup(index) : undefined), [index]);
 }
 
+export interface RestoreOffer {
+  /** Was gerade zu zeigen ist (siehe `restoreStep`). */
+  step: RestoreStep;
+  /** Die Sicherung zum Angebot; nur bei `step === 'offer'` gesetzt. */
+  offer: Restorable | null;
+  /** Blendet das Angebot für diesen Lauf aus, den Hinweis auf Dauer. */
+  dismiss: () => void;
+}
+
 /**
  * Android-App: Ist die Sammlung beim Start leer und liegt eine lesbare Sicherung im Ordner
- * der App, bietet die App sie zum Wiederherstellen an. `dismiss` blendet das Angebot aus.
+ * der App, bietet die App sie zum Wiederherstellen an. Findet sie keine (so nach einer
+ * Neuinstallation, weil Android die alten Dateien nicht freigibt), nennt ein Hinweis den Weg
+ * über „Sicherung einspielen“. `cards` ist die Zahl der Karten in der Sammlung jetzt.
  */
-export function useRestoreOffer(): { offer: Restorable | null; dismiss: () => void } {
-  const [offer, setOffer] = useState<Restorable | null>(null);
+export function useRestoreOffer(cards: number): RestoreOffer {
+  const [search, setSearch] = useState<RestoreSearch | null>(null);
+  const [declined, setDeclined] = useState(false);
+  const hintDismissed = useLocalStore(restoreHintDismissed) === true;
   useEffect(() => {
     let cancelled = false;
-    void findRestorable().then((found) => {
-      if (!cancelled) setOffer(found);
+    void findRestorable().then((result) => {
+      if (!cancelled) setSearch(result);
     });
     return () => {
       cancelled = true;
     };
   }, []);
-  const dismiss = useCallback(() => setOffer(null), []);
-  return { offer, dismiss };
+
+  const step = restoreStep({
+    searched: search !== null,
+    emptyAtStart: search?.empty ?? false,
+    cards,
+    readable: Boolean(search?.found),
+    offerDeclined: declined,
+    hintDismissed,
+  });
+  const dismiss = useCallback(() => {
+    if (step === 'hint') restoreHintDismissed.set(true);
+    else setDeclined(true);
+  }, [step]);
+  return { step, offer: step === 'offer' ? (search?.found ?? null) : null, dismiss };
 }
 
 /**

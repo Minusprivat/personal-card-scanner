@@ -70,6 +70,38 @@ export function collectionSignature(state: CollectionState): string {
   return (hash >>> 0).toString(16).padStart(8, '0');
 }
 
+/**
+ * Was die Android-App bei leerer Sammlung zeigt: nichts, das Angebot „Wiederherstellen“
+ * oder den Hinweis, wo die Sicherung nach einer Neuinstallation liegt.
+ */
+export type RestoreStep = 'none' | 'offer' | 'hint';
+
+export interface RestoreSituation {
+  /** Die Suche nach einer Sicherung ist abgeschlossen. */
+  searched: boolean;
+  /** Die Sammlung war beim Start leer. */
+  emptyAtStart: boolean;
+  /** Karten in der Sammlung jetzt. */
+  cards: number;
+  /** Im Ordner der App liegt eine Sicherung, die sich lesen lässt. */
+  readable: boolean;
+  /** Der Nutzer hat das Angebot in diesem Lauf abgelehnt. */
+  offerDeclined: boolean;
+  /** Der Nutzer hat den Hinweis ausgeblendet (bleibt gemerkt). */
+  hintDismissed: boolean;
+}
+
+/**
+ * Nach einer Neuinstallation ist die Sammlung leer, und Android lässt die App die
+ * Sicherungen der früheren Installation nicht von selbst lesen. Dann gibt es kein Angebot,
+ * aber die Dateien liegen noch im Ordner: Der Hinweis nennt den Weg über die Dateiauswahl.
+ */
+export function restoreStep(s: RestoreSituation): RestoreStep {
+  if (!s.searched || !s.emptyAtStart || s.cards > 0) return 'none';
+  if (s.readable) return s.offerDeclined ? 'none' : 'offer';
+  return s.hintDismissed ? 'none' : 'hint';
+}
+
 /** Ab so vielen geänderten Karten erinnert die Web-App an eine Sicherung. */
 export const BACKUP_REMINDER_CARDS = 20;
 

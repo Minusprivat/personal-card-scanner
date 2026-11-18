@@ -371,7 +371,8 @@ export function FilesView({
                 <a className="textlink" href={APK_URL} target="_blank" rel="noopener">
                   Neue APK laden
                 </a>{' '}
-                und über die vorhandene App installieren; die Sammlung bleibt erhalten.
+                und über die vorhandene App installieren, ohne sie vorher zu deinstallieren: So bleibt die Sammlung
+                erhalten.
               </>
             )}
           </p>

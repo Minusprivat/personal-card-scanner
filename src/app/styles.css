@@ -1394,7 +1394,8 @@ button:disabled {
   white-space: nowrap;
 }
 
-/* Querformat und PC: beide Spieler nebeneinander, die Leiste steht dazwischen. */
+/* PC und breite Fenster: beide Spieler nebeneinander, die Leiste steht dazwischen.
+   Auf dem Handy bleibt die App im Hochformat (AndroidManifest.xml, Web-Manifest). */
 @media (orientation: landscape) and (min-width: 640px) {
   .score {
     grid-template-rows: minmax(0, 1fr);

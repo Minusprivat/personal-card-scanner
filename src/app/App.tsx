@@ -17,7 +17,7 @@ import {
   useStock,
 } from './hooks';
 import { useLocalStore } from './local-store';
-import { isNativeApp } from './save';
+import { isNativeApp, NATIVE_FOLDER } from './save';
 import { ScanView } from './scan/ScanView';
 import { PlayView } from './play/PlayView';
 import { ScoreView } from './score/ScoreView';
@@ -42,10 +42,10 @@ export function App() {
   };
 
   useAutoBackup(catalog.status === 'ready' ? catalog.index : null);
-  const restore = useRestoreOffer();
+  const cards = [...stock.values()].reduce((a, b) => a + b, 0);
+  const restore = useRestoreOffer(cards);
   // Die Web-App kann nicht von selbst sichern; sie erinnert nach größeren Änderungen daran.
   const mark = useLocalStore(backupMark);
-  const cards = [...stock.values()].reduce((a, b) => a + b, 0);
   const remind = !isNativeApp() && cards > 0 && route.page !== 'files' && needsBackupReminder(cards, mark);
 
   return (
@@ -92,16 +92,31 @@ export function App() {
           <a className="textlink" href={APK_URL} target="_blank" rel="noopener">
             Neue APK laden
           </a>{' '}
-          und über die vorhandene App installieren; die Sammlung bleibt erhalten.{' '}
+          und über die vorhandene App installieren, ohne sie vorher zu deinstallieren: So bleibt die Sammlung
+          erhalten.{' '}
           <button type="button" className="link" onClick={() => dismiss(update.version)}>
             Später
           </button>
         </p>
       )}
 
-      {restore.offer && cards === 0 && (
+      {/* Nach einer Neuinstallation gibt Android die alten Sicherungen nicht frei: Dann führt nur die Dateiauswahl hin. */}
+      {restore.step === 'hint' && route.page !== 'files' && (
+        <p className="notice" role="status">
+          Die Sammlung auf diesem Gerät ist leer. War die App schon einmal installiert? Dann liegt die letzte
+          automatische Sicherung noch im Ordner „Dokumente/{NATIVE_FOLDER}“: auf der Seite „Sicherung“ „Sicherung
+          einspielen“ antippen und dort die neueste Datei „card-scanner-auto-…“ wählen.{' '}
+          <a className="textlink" href="#/datei">
+            Zur Sicherung
+          </a>{' '}
+          <button type="button" className="link" onClick={restore.dismiss}>
+            Ausblenden
+          </button>
+        </p>
+      )}
+      {restore.offer && (
         <p className="notice ok" role="status">
-          Die Sammlung auf diesem Gerät ist leer. Im Ordner „Dokumente/CardScanner“ liegt eine Sicherung vom{' '}
+          Die Sammlung auf diesem Gerät ist leer. Im Ordner „Dokumente/{NATIVE_FOLDER}“ liegt eine Sicherung vom{' '}
           {formatDay(restore.offer.day)} mit {restore.offer.cards} Karten.{' '}
           <button
             type="button"

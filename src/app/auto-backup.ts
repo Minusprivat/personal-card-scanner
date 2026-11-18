@@ -139,15 +139,29 @@ export interface Restorable {
   state: CollectionState;
 }
 
+/** Ergebnis der Suche beim Start. */
+export interface RestoreSearch {
+  /** Die Sammlung war leer. Lässt sich die Datenbank nicht lesen, gilt sie nicht als leer. */
+  empty: boolean;
+  /** Die neueste lesbare Sicherung mit Karten, sonst null. */
+  found: Restorable | null;
+}
+
+/** Der Nutzer hat den Hinweis auf den Sicherungsordner ausgeblendet. */
+export const restoreHintDismissed = localStore<boolean>('restoreHintDismissed');
+
 /**
  * Sucht nach einer Sicherung, wenn die Sammlung leer ist (z. B. nach „Daten löschen“).
  * Nach einer Neuinstallation gibt Android die alten Dateien nicht von selbst frei; dann
- * bleibt nur der Weg über „Sicherung einspielen“ mit Dateiauswahl.
+ * bleibt nur der Weg über „Sicherung einspielen“ mit Dateiauswahl. Die App weist in diesem
+ * Fall darauf hin (`restoreStep` in src/data/auto-backup.ts).
  */
-export async function findRestorable(): Promise<Restorable | null> {
-  if (!isNativeApp()) return null;
+export async function findRestorable(): Promise<RestoreSearch> {
+  if (!isNativeApp()) return { empty: false, found: null };
+  let empty = false;
   try {
-    if ((await db.stock.count()) > 0) return null;
+    empty = (await db.stock.count()) === 0;
+    if (!empty) return { empty, found: null };
     for (const file of newestBackupsFirst(await listFolder())) {
       try {
         const { data } = await Filesystem.readFile({
@@ -157,7 +171,7 @@ export async function findRestorable(): Promise<Restorable | null> {
         });
         const state = parseBackup(String(data));
         const cards = sum(state.stock);
-        if (cards > 0) return { file, day: backupDay(file)!, cards, state };
+        if (cards > 0) return { empty, found: { file, day: backupDay(file)!, cards, state } };
       } catch {
         // Nicht lesbar oder keine Sicherung: nächste Datei versuchen.
       }
@@ -165,5 +179,5 @@ export async function findRestorable(): Promise<Restorable | null> {
   } catch {
     // Ordner fehlt oder ist nicht lesbar: Es gibt nichts anzubieten.
   }
-  return null;
+  return { empty, found: null };
 }

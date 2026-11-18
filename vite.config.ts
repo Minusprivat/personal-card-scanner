@@ -22,7 +22,9 @@ export default defineConfig({
         description: 'Private Riftbound-Sammlung mit Kartenscanner',
         lang: 'de',
         display: 'standalone',
-        orientation: 'any',
+        // Als App installiert bleibt sie auf dem Handy im Hochformat; die Android-App legt
+        // dasselbe in AndroidManifest.xml fest. Im Browser-Tab und am PC gilt das nicht.
+        orientation: 'portrait',
         background_color: '#0a1420',
         theme_color: '#0a1420',
         start_url: '.',
