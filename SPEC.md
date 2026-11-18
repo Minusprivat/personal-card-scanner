@@ -92,7 +92,8 @@ Die erste Version deckt drei Dinge ab: scannen, in einer Sitzung sammeln und aus
 - Antippen öffnet die Karte mit allen Fassungen. Bei Sonderausgaben steht die Herkunft dabei, z. B. „Nexus Night › Origins“, „Worlds 2026 Bundle“ oder „Regional Qualifier › Best Of (Origins, Spiritforged)“; bündelt ein Eintrag mehrere Sonderausgaben, steht sie bei jedem Finish.
 - Filter nach Farbe, Kartentyp, Seltenheit, Variante, Set, Schlagwort und „besitze ich / fehlt“. Eine Karte erscheint, sobald eine ihrer Fassungen passt; „besitze ich / fehlt“ bezieht sich auf die passenden Fassungen.
 - Jeder Filter erlaubt mehrere Werte, z. B. Calm und Body. Innerhalb eines Filters genügt einer der Werte, verschiedene Filter gelten gemeinsam. Bei Farbe und Schlagwort lässt sich umstellen, dass die Karte alle gewählten Werte tragen muss.
-- Suche nach Name und Kartennummer, Hinzufügen auch ohne Scan.
+- Suche nach Name und Kartennummer, Hinzufügen auch ohne Scan. Die Suche findet eine Karte auch über die Namen, zu denen sie gehört (Champion, Region, Art): „Jinx“ zeigt die Units, die Legende und den Signature Spell.
+- Legenden führt der Katalog nur unter ihrem Titel („Loose Cannon“). Die App zeigt sie mit dem Champion davor, „Jinx, Loose Cannon“, so wie die Units heißen und wie Cardmarket sie führt.
 - Suche im Kartentext in einem eigenen Feld: „move“ findet alle Karten, auf denen ein Wort mit „move“ beginnt (nicht „remove“). Der Text stammt aus dem Katalog und gilt je Karte, so wie er auf ihrem ersten Druck steht, samt Erklärungen in Klammern. Die Detailseite zeigt ihn an.
 - Die Detailseite zeigt alle Drucke einer Karte nebeneinander, jeweils mit Bestand und Preis.
 - Gesamtwert der Sammlung als Summe aus Low-Preis mal Menge.

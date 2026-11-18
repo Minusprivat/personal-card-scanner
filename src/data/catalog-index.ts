@@ -60,9 +60,23 @@ export function buildIndex(catalog: Catalog): CatalogIndex {
   };
 }
 
-/** Kartenname eines Drucks; fällt auf den aufgedruckten Namen zurück. */
-export const printName = (index: CatalogIndex, print: Print) =>
-  index.cardById.get(print.cardId)?.name ?? print.skus[0]!.printedName;
+/**
+ * Name, unter dem die App eine Karte zeigt. Legenden führt der Katalog nur unter ihrem Titel
+ * („Loose Cannon“); der Champion steht als einziges Schlagwort dabei. Gezeigt wird deshalb
+ * „Jinx, Loose Cannon“, so wie die Units heißen („Jinx, Demolitionist“) und wie Cardmarket
+ * die Legenden führt. `Card.name` bleibt der Name der Quelle.
+ */
+export function cardTitle(card: Card): string {
+  const champion = card.types.includes('legend') && card.tags.length === 1 ? card.tags[0]! : null;
+  if (!champion || card.name.toLowerCase().startsWith(champion.toLowerCase())) return card.name;
+  return `${champion}, ${card.name}`;
+}
+
+/** Angezeigter Kartenname eines Drucks; fällt auf den aufgedruckten Namen zurück. */
+export const printName = (index: CatalogIndex, print: Print) => {
+  const card = index.cardById.get(print.cardId);
+  return card ? cardTitle(card) : print.skus[0]!.printedName;
+};
 
 export const printCode = (print: Print) => print.skus[0]!.publicCode || print.skus[0]!.shortCode;
 

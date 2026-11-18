@@ -131,10 +131,15 @@ function matchesList(chosen: string[], present: string[], all = false): boolean 
   return all ? chosen.every((c) => present.includes(c)) : chosen.some((c) => present.includes(c));
 }
 
-/** Suchtext eines Drucks: Name, aufgedruckter Name und Nummer in beiden Schreibweisen. */
+/**
+ * Suchtext eines Drucks: Name, aufgedruckter Name, Nummer in beiden Schreibweisen und die
+ * Namen, zu denen die Karte gehört (`Card.tags`, meist der Champion). So findet „Jinx“ auch
+ * die Legende „Loose Cannon“ und den Signature Spell.
+ */
 function haystack(index: CatalogIndex, print: Print): string {
   const s = print.skus[0]!;
-  return normalize(`${printName(index, print)} ${s.printedName} ${printCode(print)} ${s.shortCode}`);
+  const tags = index.cardById.get(print.cardId)?.tags ?? [];
+  return normalize(`${printName(index, print)} ${s.printedName} ${printCode(print)} ${s.shortCode} ${tags.join(' ')}`);
 }
 
 /** Kartentexte in Suchform, je Katalogstand einmal aufbereitet. */

@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { imageUrl, printCode, printImageId, type CatalogIndex } from '../data/catalog-index';
+import { cardTitle, imageUrl, printCode, printImageId, type CatalogIndex } from '../data/catalog-index';
 import { DOMAIN_LABELS } from '../data/filter';
 import { FINISH_LABELS, type Print, type Sku } from '../data/model';
 import { cardmarketEnglishUrl, formatDay, formatEuro, type PriceData } from '../data/prices';
@@ -41,14 +41,14 @@ export function CardDetail({
   const kinds = kindSummary(countByKind(prints, stock));
 
   return (
-    <div className="detail" role="dialog" aria-modal="true" aria-label={card?.name ?? 'Karte'}>
+    <div className="detail" role="dialog" aria-modal="true" aria-label={card ? cardTitle(card) : 'Karte'}>
       {/* Bleibt beim Scrollen oben stehen: Zurück, Name und Bestand je Art. */}
       <header className="detail-head">
         <button type="button" className="back" onClick={close}>
           ← Zurück
         </button>
         <div className="detail-title">
-          <h1>{card?.name ?? 'Unbekannte Karte'}</h1>
+          <h1>{card ? cardTitle(card) : 'Unbekannte Karte'}</h1>
           {kinds.length > 0 && (
             <p className="detail-kinds">
               {kinds.map((k) => (

@@ -61,7 +61,7 @@ Commits in diesem Repository nutzen die GitHub-noreply-Adresse (lokale Git-Einst
   - `model.ts`: Card, Print (Druck), Sku (Druck + Finish), `CatalogSource`.
   - `prints.ts`: fasst Skus zu Drucken zusammen.
   - `prices.ts`: Cardmarket Low je Finish, „kein Preis“ statt 0 €.
-  - `catalog-index.ts`, `filter.ts`: Nachschlagetabellen, Suche und Filter (Mehrfachauswahl, Suche im Kartentext am Wortanfang). `filterCards` fasst das Ergebnis je Karte zusammen.
+  - `catalog-index.ts`, `filter.ts`: Nachschlagetabellen, Suche und Filter (Mehrfachauswahl, Suche im Kartentext am Wortanfang). `filterCards` fasst das Ergebnis je Karte zusammen. `cardTitle` liefert den angezeigten Namen: Legenden heißen in der Quelle nur nach ihrem Titel und bekommen den Champion davor („Jinx, Loose Cannon“); Kartennamen in der Oberfläche deshalb über `cardTitle` oder `printName` holen, nicht über `Card.name`. Die Namenssuche durchsucht auch `Card.tags`.
   - `csv.ts`, `backup.ts`, `piltover.ts`: Sicherung (JSON), Tabelle (CSV), Piltover-Archive-Format.
   - `auto-backup.ts`: Dateinamen, Aufräumen und Erinnerung der automatischen Sicherung.
   - `versions.ts`: Art einer Fassung (Normal, Foil, Promo, Metal), Zählung je Karte und lesbare Herkunft der Sonderausgaben.

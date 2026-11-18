@@ -319,7 +319,7 @@ function Tile({ index, group, stock }: { index: CatalogIndex; group: CardGroup; 
         )}
         {owned > 0 && <span className="badge">{owned}</span>}
       </div>
-      <div className="tile-name">{group.card?.name ?? printName(index, shown)}</div>
+      <div className="tile-name">{printName(index, shown)}</div>
       <div className="tile-kinds">
         {/* Der Trennstrich steht vor jedem Eintrag; am Zeilenanfang schneidet ihn die Kachel ab. */}
         <div>
