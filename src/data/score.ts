@@ -243,3 +243,12 @@ export function parseSettings(value: unknown): ScoreSettings {
     facing: s.facing !== false,
   };
 }
+
+/** Liest die Minuten aus dem Eingabefeld des Zeitlimits; null bei leerer oder unbrauchbarer Eingabe. */
+export function parseMinutes(text: string): number | null {
+  const trimmed = text.trim();
+  return /^\d+$/.test(trimmed) ? cleanTimer(Number.parseInt(trimmed, 10)) : null;
+}
+
+/** So lange steht der Hinweis „Overtime“ über dem Zähler, wenn ihn niemand wegtippt. */
+export const OVERTIME_ALERT_MS = 5000;

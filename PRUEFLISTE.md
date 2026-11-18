@@ -91,7 +91,10 @@ Erst auf heller Unterlage, dann auf dunkler. Die graue Zeile ganz unten auf der 
 - [ ] „Punkte“ öffnet den Zähler auch im Flugmodus.
 - [ ] „Conquer“ und „Hold“ zählen je einen Punkt; „−1“ und „Zurück“ nehmen zurück, auch den Siegpunkt; bei 8 endet die Partie.
 - [ ] Der Bildschirm bleibt an, solange der Zähler offen ist (zwei Minuten nichts antippen).
-- [ ] Optionen → Zeitlimit „eigene“ 1 Minute: Nach Ablauf steht „Overtime“, das Handy vibriert einmal, die Partie läuft weiter.
+- [ ] Uhr in der Mitte antippen: Das Fenster „Zeitlimit“ öffnet sich, die Tastatur zeigt Ziffern. „1“ eintragen, „Starten“: Die Uhr läuft ab 01:00 rückwärts.
+- [ ] Nach Ablauf der Minute: ein leiser Ton (Medienlautstärke aufgedreht), das Handy vibriert, „Overtime“ leuchtet groß über dem Zähler, bei „Gegenüber sitzen“ auch für die obere Hälfte richtig herum. Die Partie läuft weiter.
+- [ ] Den Overtime-Hinweis antippen, auch genau über „Conquer“: Er verschwindet, es kommt kein Punkt dazu. Beim nächsten Mal nichts antippen: Nach etwa fünf Sekunden ist wieder der Zähler zu sehen.
+- [ ] In laufender Partie die Uhr antippen und das Limit ändern: Das Fenster nennt die bisherige Spielzeit und die Restzeit danach; „Übernehmen“ stellt die Uhr um.
 - [ ] Optionen → „Gegenüber sitzen“: Die obere Hälfte steht auf dem Kopf; zu zweit lässt sich bequem bedienen, niemand trifft die Knöpfe des anderen.
 - [ ] Handy quer halten (automatisches Drehen in Android eingeschaltet): Der Zähler bleibt im Hochformat.
 - [ ] Optionen → „Expertenmodus“: „Wer beginnt?“ erscheint, „Pass turn“ wechselt den Zug und zählt die Zugnummer, „History“ zeigt Zeit, Zug, Spieler, Punkt und Stand.

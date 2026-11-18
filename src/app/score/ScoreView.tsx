@@ -7,7 +7,9 @@ import {
   formatClock,
   history,
   newGame,
+  OVERTIME_ALERT_MS,
   parseGame,
+  parseMinutes,
   parseSettings,
   passTurn,
   pointsOf,
@@ -26,6 +28,7 @@ import {
   type Turn,
 } from '../../data/score';
 import { localStore, useLocalStore } from '../local-store';
+import { playOvertimeTone, primeSound } from './sound';
 
 /** Die laufende Partie und die Einstellungen überstehen das Schließen der App. */
 const gameStore = localStore<ScoreGame>('scoreGame');
@@ -34,6 +37,8 @@ const settingsStore = localStore<ScoreSettings>('scoreSettings');
 const KIND_LABELS: Record<PointKind, string> = { conquer: 'Conquer', hold: 'Hold' };
 const playerName = (player: PlayerIndex) => `Spieler ${player + 1}`;
 const nowIso = () => new Date().toISOString();
+/** Dauer des Ausblendens des Overtime-Hinweises; passt zu `.overtime-alert.leaving` in styles.css. */
+const ALERT_FADE_MS = 600;
 
 /** Hält den Bildschirm wach, solange der Zähler offen ist; ohne Unterstützung geschieht nichts. */
 function useWakeLock(): void {
@@ -81,7 +86,9 @@ export function ScoreView() {
   const game = useMemo(() => parseGame(storedGame), [storedGame]);
   const storedSettings = useLocalStore(settingsStore);
   const settings = useMemo(() => parseSettings(storedSettings), [storedSettings]);
-  const [panel, setPanel] = useState<'settings' | 'history' | null>(null);
+  const [panel, setPanel] = useState<'settings' | 'history' | 'timer' | null>(null);
+  // Großer Hinweis „Overtime“ über dem Zähler, gleich nach Ablauf des Zeitlimits.
+  const [alert, setAlert] = useState<'on' | 'leaving' | null>(null);
 
   const won = winner(game);
   const started = startedAt(game) !== null;
@@ -94,12 +101,29 @@ export function ScoreView() {
   const limitMs = settings.timerMin === null ? null : settings.timerMin * 60_000;
   const clock = timerView(elapsedMs(game, now), limitMs);
 
-  // Ein deutliches Signal in dem Moment, in dem die Zeit abläuft.
+  // Ein deutliches Signal in dem Moment, in dem die Zeit abläuft: Vibration, leiser Ton und der
+  // Hinweis „Overtime“, bis jemand den Bildschirm berührt oder fünf Sekunden vergangen sind.
+  // Wer den Zähler erst in der Overtime öffnet, bekommt kein Signal mehr.
   const wasOvertime = useRef(clock.overtime);
   useEffect(() => {
-    if (clock.overtime && !wasOvertime.current && won === null) navigator.vibrate?.([200, 100, 200, 100, 400]);
+    if (clock.overtime && !wasOvertime.current && won === null) {
+      navigator.vibrate?.([200, 100, 200, 100, 400]);
+      playOvertimeTone();
+      setAlert('on');
+    }
+    if (!clock.overtime) setAlert(null);
     wasOvertime.current = clock.overtime;
   }, [clock.overtime, won]);
+  // Nach fünf Sekunden blendet der Hinweis kurz aus. Solange fängt er noch Berührungen ab: Wer ihn
+  // gerade wegtippen wollte, soll nicht aus Versehen einen Punkt darunter auslösen.
+  useEffect(() => {
+    if (alert === null) return;
+    const timer =
+      alert === 'on'
+        ? setTimeout(() => setAlert('leaving'), OVERTIME_ALERT_MS)
+        : setTimeout(() => setAlert(null), ALERT_FADE_MS);
+    return () => clearTimeout(timer);
+  }, [alert]);
 
   const save = (next: ScoreGame) => {
     if (next !== game) gameStore.set(next);
@@ -150,7 +174,7 @@ export function ScoreView() {
   const canStart = limitMs !== null && !started && !settings.expert;
 
   return (
-    <main className="score" aria-label="Punktezähler">
+    <main className="score" aria-label="Punktezähler" onPointerDown={primeSound}>
       {side(1)}
       <div className={clock.overtime ? (won === null ? 'score-bar overtime running' : 'score-bar overtime') : 'score-bar'}>
         <div className="bar-group">
@@ -165,20 +189,19 @@ export function ScoreView() {
             </button>
           )}
         </div>
-        {canStart ? (
-          <button type="button" className="score-clock start" onClick={() => save(begin(game, nowIso()))}>
-            <strong>
-              <Icon name="play" />
-              {time}
-            </strong>
-            <span>Uhr starten</span>
-          </button>
-        ) : (
-          <div className="score-clock" role="timer" aria-label={`${label}, ${time}`}>
-            <strong>{time}</strong>
-            <span>{label}</span>
-          </div>
-        )}
+        {/* Die Uhr öffnet das Zeitlimit; ist sie noch nicht gestartet, startet sie von dort. */}
+        <button
+          type="button"
+          className={canStart ? 'score-clock start' : 'score-clock'}
+          aria-label={canStart ? `Uhr starten oder Zeitlimit ändern, ${time}` : `${label}, ${time}. Zeitlimit ändern`}
+          onClick={() => setPanel('timer')}
+        >
+          <strong role="timer">
+            {canStart && <Icon name="play" />}
+            {time}
+          </strong>
+          <span>{canStart ? 'Uhr starten' : label}</span>
+        </button>
         <div className="bar-group end">
           <button type="button" onClick={() => setPanel('settings')}>
             <Icon name="settings" />
@@ -232,6 +255,28 @@ export function ScoreView() {
       )}
       {panel === 'history' && (
         <HistorySheet game={game} limitMs={limitMs} turn={turn} onClose={() => setPanel(null)} />
+      )}
+      {panel === 'timer' && (
+        <TimerSheet
+          timerMin={settings.timerMin}
+          elapsed={started ? elapsedMs(game, now) : null}
+          // Wie bisher über die Uhr: starten nur ohne Expertenmodus, dort startet die Wahl des Beginners.
+          canStart={!started && !settings.expert}
+          onApply={(timerMin, start) => {
+            settingsStore.set({ ...settings, timerMin });
+            if (start) save(begin(game, nowIso()));
+            setPanel(null);
+          }}
+          onClose={() => setPanel(null)}
+        />
+      )}
+      {alert && (
+        <OvertimeAlert
+          facing={settings.facing}
+          time={time}
+          leaving={alert === 'leaving'}
+          onDismiss={() => setAlert(null)}
+        />
       )}
     </main>
   );
@@ -408,8 +453,9 @@ function SettingsSheet({
           </label>
         </div>
         <p className="filter-hint">
-          Läuft die Zeit ab, erscheint „Overtime“; die Partie läuft weiter. Die Uhr startet mit dem ersten Punkt, über
-          die Uhr in der Mitte oder – im Expertenmodus – sobald feststeht, wer beginnt.
+          Läuft die Zeit ab, ertönt ein leiser Ton und „Overtime“ leuchtet auf; die Partie läuft weiter. Die Uhr in
+          der Mitte antippen, um das Limit zu ändern. Die Uhr startet mit dem ersten Punkt, über die Uhr in der Mitte
+          oder – im Expertenmodus – sobald feststeht, wer beginnt.
         </p>
       </div>
 
@@ -443,6 +489,139 @@ function SettingsSheet({
         </button>
       </div>
     </Sheet>
+  );
+}
+
+/** Zeitlimit über die Uhr: Minuten eintippen, übernehmen und – vor der Partie – gleich starten. */
+function TimerSheet({
+  timerMin,
+  elapsed,
+  canStart,
+  onApply,
+  onClose,
+}: {
+  timerMin: number | null;
+  /** Bisherige Spieldauer; null, solange die Uhr nicht läuft. */
+  elapsed: number | null;
+  canStart: boolean;
+  onApply: (timerMin: number | null, start: boolean) => void;
+  onClose: () => void;
+}) {
+  const [text, setText] = useState(timerMin === null ? '' : String(timerMin));
+  const minutes = parseMinutes(text);
+  const input = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    input.current?.focus();
+    input.current?.select();
+  }, []);
+
+  let hint: string;
+  if (minutes === null) {
+    hint = text.trim() ? `Bitte ganze Minuten von 1 bis ${TIMER_MAX_MIN} eintragen.` : 'Minuten eintragen oder antippen.';
+  } else if (elapsed !== null) {
+    const after = timerView(elapsed, minutes * 60_000);
+    hint = after.overtime
+      ? `Schon ${formatClock(elapsed)} gespielt: Die Overtime beginnt sofort.`
+      : `Bisher ${formatClock(elapsed)} gespielt, danach bleiben ${formatClock(after.ms)}.`;
+  } else {
+    hint = canStart
+      ? 'Die Uhr läuft ab „Starten“ oder ab dem ersten Punkt.'
+      : 'Die Uhr läuft, sobald feststeht, wer beginnt.';
+  }
+
+  return (
+    <Sheet title="Zeitlimit" onClose={onClose}>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (minutes !== null) onApply(minutes, canStart);
+        }}
+      >
+        <label className="minutes-field">
+          <input
+            ref={input}
+            type="number"
+            inputMode="numeric"
+            min={1}
+            max={TIMER_MAX_MIN}
+            placeholder="30"
+            aria-label="Zeitlimit in Minuten"
+            aria-invalid={text.trim() !== '' && minutes === null}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+          />
+          <span>Minuten</span>
+        </label>
+        <div className="chips timer-chips" role="group" aria-label="Häufige Zeitlimits">
+          {TIMER_CHOICES.map((choice) => (
+            <button
+              key={choice}
+              type="button"
+              className="chip"
+              aria-pressed={minutes === choice}
+              onClick={() => setText(String(choice))}
+            >
+              {choice} Min.
+            </button>
+          ))}
+        </div>
+        <p className="filter-hint" aria-live="polite">
+          {hint}
+        </p>
+        <div className="buttons timer-buttons">
+          <button type="button" onClick={() => onApply(null, false)}>
+            Ohne Limit
+          </button>
+          {canStart ? (
+            <button type="button" disabled={minutes === null} onClick={() => onApply(minutes, false)}>
+              Nur einstellen
+            </button>
+          ) : (
+            <button type="button" onClick={onClose}>
+              Abbrechen
+            </button>
+          )}
+          <button type="submit" className="primary" disabled={minutes === null}>
+            {canStart ? 'Starten' : 'Übernehmen'}
+          </button>
+        </div>
+      </form>
+    </Sheet>
+  );
+}
+
+/**
+ * Hinweis über dem ganzen Zähler, wenn das Zeitlimit abläuft. Eine Berührung schließt ihn, ohne
+ * darunter etwas auszulösen; sonst verschwindet er nach OVERTIME_ALERT_MS von selbst.
+ */
+function OvertimeAlert({
+  facing,
+  time,
+  leaving,
+  onDismiss,
+}: {
+  facing: boolean;
+  time: string;
+  leaving: boolean;
+  onDismiss: () => void;
+}) {
+  useEffect(() => {
+    window.addEventListener('keydown', onDismiss);
+    return () => window.removeEventListener('keydown', onDismiss);
+  }, [onDismiss]);
+  const half = (turned: boolean) => (
+    <div className={turned ? 'alert-half turned' : 'alert-half'} aria-hidden={turned || undefined}>
+      <strong>Overtime</strong>
+      <span>Zeit abgelaufen · {time}</span>
+      <small>Antippen zum Schließen</small>
+    </div>
+  );
+  return (
+    <div className={leaving ? 'overtime-alert leaving' : 'overtime-alert'} role="alert" onClick={onDismiss}>
+      {/* Sitzen sich zwei gegenüber, liest jeder den Hinweis richtig herum. */}
+      {facing && half(true)}
+      {half(false)}
+    </div>
   );
 }
 

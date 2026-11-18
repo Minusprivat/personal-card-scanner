@@ -10,6 +10,7 @@ import {
   history,
   newGame,
   parseGame,
+  parseMinutes,
   parseSettings,
   passTurn,
   pointsOf,
@@ -276,5 +277,25 @@ describe('Einstellungen des Zählers', () => {
     expect(cleanTimer(12.5)).toBeNull();
     expect(cleanTimer('45')).toBeNull();
     expect(parseSettings({ timerMin: -5 }).timerMin).toBeNull();
+  });
+});
+
+describe('Zeitlimit über die Uhr', () => {
+  it('liest ganze Minuten aus dem Eingabefeld', () => {
+    expect(parseMinutes('20')).toBe(20);
+    expect(parseMinutes(' 45 ')).toBe(45);
+    expect(parseMinutes('180')).toBe(180);
+  });
+
+  it('weist leere, gebrochene und zu große Eingaben zurück', () => {
+    for (const text of ['', '  ', '0', '181', '2.5', '2,5', '-5', '1e2', 'abc', '15 Min']) {
+      expect(parseMinutes(text), text).toBeNull();
+    }
+  });
+
+  it('ein kürzeres Limit in laufender Partie führt sofort in die Overtime', () => {
+    // 12 Minuten gespielt, Limit auf 10 gesenkt: zwei Minuten überzogen.
+    expect(timerView(12 * MIN, 10 * MIN)).toEqual({ overtime: true, ms: 2 * MIN });
+    expect(timerView(12 * MIN, 20 * MIN)).toEqual({ overtime: false, ms: 8 * MIN });
   });
 });

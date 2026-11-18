@@ -1371,8 +1371,20 @@ button:disabled {
 }
 
 .score-clock strong {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   font-size: 1.3rem;
   font-variant-numeric: tabular-nums;
+}
+
+/* Die Uhr ist ein Knopf: antippen öffnet das Zeitlimit. */
+.score-bar button.score-clock {
+  gap: 0;
+  min-width: 96px;
+  padding: 4px 10px;
+  color: var(--text);
+  line-height: 1.2;
 }
 
 .score-clock span {
@@ -1464,17 +1476,9 @@ button:disabled {
 
 /* Zeitlimit: Uhr als Startknopf, danach Restzeit; nach Ablauf „Overtime“. */
 .score-bar button.score-clock.start {
-  min-width: 96px;
-  padding: 4px 10px;
   background: color-mix(in srgb, var(--accent) 14%, transparent);
   border-color: var(--accent);
   color: var(--text);
-}
-
-.score-clock.start strong {
-  display: flex;
-  align-items: center;
-  gap: 4px;
 }
 
 .score-clock.start .icon {
@@ -1681,11 +1685,134 @@ button:disabled {
   font-weight: 700;
 }
 
+/* Zeitlimit über die Uhr: großes Feld für die Minuten. */
+.minutes-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.minutes-field input {
+  width: 116px;
+  min-height: 56px;
+  padding: 6px 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 1.8rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.minutes-field input[aria-invalid='true'] {
+  border-color: var(--danger);
+}
+
+.minutes-field span {
+  color: var(--muted);
+}
+
+.timer-chips {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.timer-chips .chip {
+  padding-inline: 4px;
+  white-space: nowrap;
+}
+
+.sheet .chips + .filter-hint {
+  margin-top: 12px;
+}
+
+/* Zwei Nebenknöpfe nebeneinander, der Hauptknopf breit darunter. */
+.buttons.timer-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.timer-buttons .primary {
+  grid-column: 1 / -1;
+  min-height: 48px;
+}
+
+/* Ablauf des Zeitlimits: „Overtime“ leuchtet über dem ganzen Zähler, bis jemand tippt. */
+.overtime-alert {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: grid;
+  grid-auto-rows: minmax(0, 1fr);
+  place-items: center;
+  padding: 16px;
+  background: color-mix(in srgb, var(--danger) 26%, rgba(8, 12, 20, 0.9));
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  animation: overtime-flash 0.8s ease-in-out infinite alternate;
+}
+
+.alert-half {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.alert-half.turned {
+  transform: rotate(180deg);
+}
+
+.alert-half strong {
+  color: var(--danger);
+  font-size: clamp(2.4rem, 13vw, 5rem);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-transform: uppercase;
+  text-shadow: 0 0 28px color-mix(in srgb, var(--danger) 75%, transparent);
+}
+
+.alert-half span {
+  color: var(--text);
+  font-size: 1.05rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.alert-half small {
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+/* Ausblenden nach fünf Sekunden (ALERT_FADE_MS in ScoreView.tsx); tippen schließt auch jetzt noch. */
+.overtime-alert.leaving {
+  opacity: 0;
+  transition: opacity 0.6s ease-out;
+}
+
+@keyframes overtime-flash {
+  to {
+    background-color: color-mix(in srgb, var(--danger) 8%, rgba(8, 12, 20, 0.9));
+  }
+}
+
+/* Nebeneinander (PC) sitzt niemand auf dem Kopf: der Hinweis steht nur einmal da. */
+@media (orientation: landscape) and (min-width: 640px) {
+  .alert-half.turned {
+    display: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .ring-score strong,
   .seg.last,
   .side.won .seg.on,
-  .score-bar.overtime.running .score-clock span {
+  .score-bar.overtime.running .score-clock span,
+  .overtime-alert {
     animation: none;
   }
 }
