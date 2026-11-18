@@ -28,7 +28,7 @@ import {
 import { localStore, useLocalStore } from '../local-store';
 
 /** Die laufende Partie und die Einstellungen überstehen das Schließen der App. */
-export const gameStore = localStore<ScoreGame>('scoreGame');
+const gameStore = localStore<ScoreGame>('scoreGame');
 const settingsStore = localStore<ScoreSettings>('scoreSettings');
 
 const KIND_LABELS: Record<PointKind, string> = { conquer: 'Conquer', hold: 'Hold' };

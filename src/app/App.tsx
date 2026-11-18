@@ -64,8 +64,14 @@ export function App() {
           <a href="#/datei" aria-current={route.page === 'files' ? 'page' : undefined}>
             Sicherung
           </a>
-          <a href="#/spiel" aria-current={route.page === 'play' || route.page === 'score' ? 'page' : undefined}>
-            Spiel
+          {/* Auf schmalen Bildschirmen stehen die kurzen Namen, damit fünf Einträge passen. */}
+          <a href="#/spiel" aria-current={route.page === 'play' ? 'page' : undefined} aria-label="Spielerdaten">
+            <span className="nav-long">Spielerdaten</span>
+            <span className="nav-short">Spieler</span>
+          </a>
+          <a href="#/punkte" aria-current={route.page === 'score' ? 'page' : undefined} aria-label="Punktezähler">
+            <span className="nav-long">Punktezähler</span>
+            <span className="nav-short">Punkte</span>
           </a>
         </nav>
       </header>
@@ -128,7 +134,7 @@ export function App() {
 
       {/* Der Punktezähler braucht weder Katalog noch Netz und liegt über dem Rest der Seite. */}
       {route.page === 'score' && <ScoreView />}
-      {/* Auch die Seite „Spiel“ kommt ohne Katalog aus: Sie verlinkt nur. */}
+      {/* Auch die Seite „Spielerdaten“ kommt ohne Katalog aus: Sie verlinkt nur. */}
       {route.page === 'play' && (
         <main>
           <PlayView />

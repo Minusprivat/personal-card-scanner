@@ -717,12 +717,36 @@ button.link {
   font-weight: 700;
 }
 
-/* Kopfzeile: drei Einträge passen auf schmale Handys nur ohne Schriftzug */
+/* Kopfzeile: fünf Einträge. Auf schmalen Bildschirmen stehen kurze Namen und der Schriftzug fällt weg. */
 .topbar nav a {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   white-space: nowrap;
+}
+
+/* Reicht der Platz trotzdem nicht, lässt sich die Leiste seitlich schieben statt umzubrechen. */
+.topbar nav {
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.topbar nav::-webkit-scrollbar {
+  display: none;
+}
+
+.nav-short {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  .nav-long {
+    display: none;
+  }
+  .nav-short {
+    display: inline;
+  }
 }
 
 .nav-count {
@@ -736,26 +760,45 @@ button.link {
   text-align: center;
 }
 
-@media (max-width: 460px) {
+@media (max-width: 600px) {
   .brand {
     display: none;
   }
   .topbar {
     justify-content: center;
   }
-  .topbar nav a {
-    padding: 8px 10px;
-  }
 }
 
-/* Vier Einträge: auf sehr schmalen Handys rücken sie enger zusammen. */
-@media (max-width: 400px) {
+@media (max-width: 460px) {
   .topbar nav {
     gap: 0;
   }
   .topbar nav a {
-    padding: 8px;
-    font-size: 0.93rem;
+    gap: 4px;
+    padding: 8px 9px;
+  }
+}
+
+/* Handy-Breite: Die fünf Einträge rücken eng zusammen, auch mit dem Zähler am Eintrag „Scannen“. */
+@media (max-width: 400px) {
+  .topbar {
+    padding-inline: 6px;
+  }
+  .topbar nav a {
+    padding: 8px 6px;
+    font-size: 0.9rem;
+  }
+  .nav-count {
+    min-width: 18px;
+    padding: 0 4px;
+    font-size: 0.72rem;
+  }
+}
+
+@media (max-width: 370px) {
+  .topbar nav a {
+    padding: 8px 4px;
+    font-size: 0.86rem;
   }
 }
 

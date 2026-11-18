@@ -1,9 +1,7 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { BOUNDRIFT_SEARCH_URL, boundRiftPlayerUrl, EVENTS_URL, parseBoundRiftPlayer } from '../../data/links';
-import { parseGame, scores, startedAt, winner } from '../../data/score';
 import { inAppLink } from '../browser';
 import { localStore, useLocalStore } from '../local-store';
-import { gameStore } from '../score/ScoreView';
 
 /** Spielernummer bei BoundRift; liegt nur auf diesem Gerät. */
 const playerStore = localStore<string>('boundriftPlayer');
@@ -23,16 +21,11 @@ function PageLink({ url, primary, children }: { url: string; primary?: boolean; 
   );
 }
 
-/** Alles rund ums Spielen: Punktezähler, Events bei Riot, eigenes Profil bei BoundRift. */
+/** Spielerdaten: Events bei Riot und das eigene Profil bei BoundRift. Der Punktezähler hat einen eigenen Menüpunkt. */
 export function PlayView() {
-  const storedGame = useLocalStore(gameStore);
-  const game = useMemo(() => parseGame(storedGame), [storedGame]);
   const playerId = useLocalStore(playerStore);
   const [input, setInput] = useState('');
   const [invalid, setInvalid] = useState(false);
-
-  const [a, b] = scores(game);
-  const running = startedAt(game) !== null;
 
   const save = () => {
     const id = parseBoundRiftPlayer(input);
@@ -45,23 +38,7 @@ export function PlayView() {
   return (
     <div className="files play">
       <section className="panel">
-        <h1>Punktezähler</h1>
-        <p>
-          {running
-            ? winner(game) === null
-              ? `Laufende Partie: ${a} : ${b}.`
-              : `Letzte Partie: ${a} : ${b}.`
-            : 'Conquer und Hold zählen, 1 gegen 1 bis 8 Punkte. Mit Zeitlimit und Expertenmodus.'}
-        </p>
-        <div className="buttons">
-          <a className="button primary" href="#/punkte">
-            {running && winner(game) === null ? 'Weiterzählen' : 'Punktezähler öffnen'}
-          </a>
-        </div>
-      </section>
-
-      <section className="panel">
-        <h2>Events</h2>
+        <h1>Events</h1>
         <p>
           Events in deiner Nähe suchen, dich anmelden und dein Deck einreichen. Das öffnet die Event-Seite von Riot in
           einem Browser-Fenster; dort meldest du dich mit deinem Riot-Konto an. Die App sieht davon nichts.

@@ -62,15 +62,15 @@ Die erste Version deckt drei Dinge ab: scannen, in einer Sitzung sammeln und aus
 - Die Katalogquelle verknüpft neue Promos und Bundles erst mit Verzögerung mit Cardmarket. Bis dahin ordnet das Datenskript sie über die öffentliche Produktliste von Cardmarket selbst zu, aber nur, wenn die Zuordnung eindeutig ist: Der Kartenname kommt bei den offenen Produkten und den offenen Fassungen je genau einmal vor und das Set passt zur Edition, oder eine ganze Edition deckt sich eins zu eins mit den offenen Fassungen eines Sets.
 - Metal und Metal Deluxe bleiben ausgenommen und ohne Preis, bis die Katalogquelle sie verknüpft. Verknüpfungen der Quelle haben immer Vorrang.
 
-### Spiel: Events und Profil
+### Spielerdaten: Events und Profil
 
-- Der Eintrag „Spiel“ in der Kopfzeile bündelt Punktezähler, Events und Profil.
+- Der Eintrag „Spielerdaten“ in der Kopfzeile (auf dem Handy kurz „Spieler“) bündelt Events und Profil.
 - „Events finden und anmelden“ öffnet die Event-Seite von Riot (playriftbound.com). In der Android-App erscheint sie als Browser-Fenster über der App; es gehört zu Chrome und nutzt dessen Anmeldung bei Riot. Die App selbst sieht weder Seite noch Zugangsdaten und baut keine Anmeldung nach.
 - „Mein Profil“ öffnet die eigene Spielerseite bei BoundRift (Match-Historie, Bilanz, inoffizielle Elo). Der Link dazu wird einmal eingefügt und bleibt nur auf dem Gerät. BoundRift ist ein unabhängiges Fan-Projekt; die App verlinkt nur und ruft dort nichts ab.
 
 ### Punktezähler
 
-- Eigener Eintrag „Punkte“ in der Kopfzeile; braucht weder Katalog noch Netz.
+- Eigener Eintrag „Punktezähler“ in der Kopfzeile (auf dem Handy kurz „Punkte“); braucht weder Katalog noch Netz.
 - Standardmodus 1 gegen 1: Beide Spieler beginnen bei 0, wer zuerst 8 Punkte hat, gewinnt. Danach nimmt die Partie keine Punkte mehr an.
 - Je Spieler zwei große Knöpfe „Conquer“ und „Hold“; jedes Antippen zählt einen Punkt. „−1“ nimmt den letzten Punkt des Spielers zurück, „Zurück“ den letzten Schritt überhaupt, auch den Siegpunkt.
 - Ein Ring mit acht Feldern zeigt den Stand, darunter steht der Verlauf der Punkte (C/H). Die Leiste in der Mitte zeigt die Spieldauer ab dem ersten Punkt.
